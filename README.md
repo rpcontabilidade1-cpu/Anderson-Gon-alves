@@ -13,7 +13,8 @@ Planilha (`Precificacao_Tributaria_Reforma_2027_2033.xlsx`) para simular a forma
 4. **Cálculo Regime Atual** — carga tributária e preço de venda antes da Reforma.
 5. **Cálculo Reforma 2027-2033** — carga tributária efetiva e preço de venda ano a ano durante a transição.
 6. **Comparativo Consolidado** — tabela e gráficos da evolução de 2026 a 2033.
-7. **Memória de Cálculo** — metodologia, fórmulas, base legal e premissas.
+7. **Simples - Único x Híbrido** — decisão do cliente do Simples Nacional entre o Regime Único (IBS/CBS por dentro do DAS) e o Regime Híbrido (por fora, crédito pleno ao comprador B2B), conforme LC 214/2025, art. 41, §3º.
+8. **Memória de Cálculo** — metodologia, fórmulas, base legal e premissas.
 
 ## Como usar
 
