@@ -530,31 +530,39 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           </div>
         </div>
 
-        <div class="grid3" style="margin-top:14px; display:none;" id="wrap-anexo-misto">
-          <div class="field">
-            <label>Anexo A</label>
-            <select id="anexo-a">
-              <option value="I" selected>Anexo I — Comércio</option>
-              <option value="II">Anexo II — Indústria</option>
-              <option value="III">Anexo III — Serviços</option>
-              <option value="IV">Anexo IV — Serviços (sem CPP na tabela)</option>
-              <option value="V">Anexo V — Serviços (fator R &lt; 28%)</option>
-            </select>
+        <div id="wrap-anexo-misto" style="display:none;">
+          <div class="grid2" style="margin-top:14px;">
+            <div class="field">
+              <label>Anexo A</label>
+              <select id="anexo-a">
+                <option value="I" selected>Anexo I — Comércio</option>
+                <option value="II">Anexo II — Indústria</option>
+                <option value="III">Anexo III — Serviços</option>
+                <option value="IV">Anexo IV — Serviços (sem CPP na tabela)</option>
+                <option value="V">Anexo V — Serviços (fator R &lt; 28%)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Faturamento no Anexo A (R$/mês)</label>
+              <input type="number" id="anexo-a-valor" value="90000" min="0" step="1000">
+            </div>
           </div>
-          <div class="field">
-            <label>Anexo B</label>
-            <select id="anexo-b">
-              <option value="I">Anexo I — Comércio</option>
-              <option value="II">Anexo II — Indústria</option>
-              <option value="III" selected>Anexo III — Serviços</option>
-              <option value="IV">Anexo IV — Serviços (sem CPP na tabela)</option>
-              <option value="V">Anexo V — Serviços (fator R &lt; 28%)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label>% do faturamento no Anexo A</label>
-            <input type="number" id="anexo-a-pct" value="50" min="0" max="100" step="1">
-            <div class="hint">O restante (100% − este valor) é tributado pelo Anexo B. A RBT12 total define a faixa/alíquota nominal em cada Anexo — só a base de cálculo da parcela é segregada.</div>
+          <div class="grid2" style="margin-top:14px;">
+            <div class="field">
+              <label>Anexo B</label>
+              <select id="anexo-b">
+                <option value="I">Anexo I — Comércio</option>
+                <option value="II">Anexo II — Indústria</option>
+                <option value="III" selected>Anexo III — Serviços</option>
+                <option value="IV">Anexo IV — Serviços (sem CPP na tabela)</option>
+                <option value="V">Anexo V — Serviços (fator R &lt; 28%)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Faturamento no Anexo B (R$/mês)</label>
+              <input type="number" id="anexo-b-valor" value="90000" min="0" step="1000">
+              <div class="hint">O "Faturamento mensal (R$)" abaixo passa a ser calculado automaticamente como A + B enquanto o regime misto estiver ativo.</div>
+            </div>
           </div>
         </div>
 
@@ -562,6 +570,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           <div class="field">
             <label>Faturamento mensal (R$)</label>
             <input type="number" id="faturamento" value="180000" min="0" step="1000">
+            <div class="hint" id="faturamento-hint-misto" style="display:none;">Bloqueado — calculado automaticamente como Anexo A + Anexo B no regime misto.</div>
           </div>
           <div class="field">
             <label>RBT12 — receita bruta últimos 12m (R$)</label>
@@ -657,6 +666,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           <h2>Resultado da simulação — 4 regimes</h2>
           <div class="btnrow"><button class="btn" onclick="salvarSimulacao()">Salvar</button><button class="btn" onclick="carregarSimulacao()">Carregar última</button><button class="btn primary" onclick="imprimirComparativo()">Imprimir / PDF</button></div>
         </div>
+        <div class="note" id="print-aviso" style="display:none; margin-bottom:14px;">O resumo para impressão já está pronto. Se a caixa de impressão não abrir sozinha (comum quando a página está dentro de outro site), pressione <b>Ctrl+P</b> (Windows) ou <b>Cmd+P</b> (Mac) e escolha "Salvar como PDF" no destino.</div>
 
         <div class="kpi-row" id="kpi-row-regimes"></div>
 
@@ -842,21 +852,35 @@ function simplesUnicoOuMisto(fat, rbt12){
   }
   const anexoA = document.getElementById('anexo-a').value;
   const anexoB = document.getElementById('anexo-b').value;
-  const pctA = (parseFloat(document.getElementById('anexo-a-pct').value)||0)/100;
-  const fatA = fat*pctA, fatB = fat*(1-pctA);
+  const fatA = parseFloat(document.getElementById('anexo-a-valor').value)||0;
+  const fatB = parseFloat(document.getElementById('anexo-b-valor').value)||0;
   const totalSU = fatA*aliqEfetivaSimples(rbt12, anexoA) + fatB*aliqEfetivaSimples(rbt12, anexoB);
   return { aliqEf: fat>0 ? totalSU/fat : 0, totalSU };
 }
 
 /* ---------- regime highlight + inputs ---------- */
 document.getElementById('regime').addEventListener('change', calcular);
-['anexo','anexo-a','anexo-b','anexo-a-pct','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','aliqreforma','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'].forEach(id=>{
+['anexo','anexo-a','anexo-b','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','aliqreforma','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'].forEach(id=>{
   document.getElementById(id).addEventListener('input', calcular);
+});
+function sincronizarFaturamentoMisto(){
+  if(document.getElementById('anexo-modo').value!=='misto') return;
+  const a = parseFloat(document.getElementById('anexo-a-valor').value)||0;
+  const b = parseFloat(document.getElementById('anexo-b-valor').value)||0;
+  document.getElementById('faturamento').value = a+b;
+}
+['anexo-a-valor','anexo-b-valor'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', ()=>{ sincronizarFaturamentoMisto(); calcular(); });
 });
 function atualizarModoAnexo(){
   const misto = document.getElementById('anexo-modo').value==='misto';
   document.getElementById('wrap-anexo-unico').style.display = misto ? 'none' : '';
   document.getElementById('wrap-anexo-misto').style.display = misto ? '' : 'none';
+  const fatEl = document.getElementById('faturamento');
+  fatEl.readOnly = misto;
+  fatEl.style.opacity = misto ? '0.65' : '';
+  document.getElementById('faturamento-hint-misto').style.display = misto ? '' : 'none';
+  if(misto) sincronizarFaturamentoMisto();
   calcular();
 }
 document.getElementById('anexo-modo').addEventListener('change', atualizarModoAnexo);
@@ -910,20 +934,22 @@ function calcular(){
   if(anexoMisto){
     const anexoA = document.getElementById('anexo-a').value;
     const anexoB = document.getElementById('anexo-b').value;
-    const pctA = (parseFloat(document.getElementById('anexo-a-pct').value)||0)/100;
-    const fatA = fat*pctA, fatB = fat*(1-pctA);
+    const fatA = parseFloat(document.getElementById('anexo-a-valor').value)||0;
+    const fatB = parseFloat(document.getElementById('anexo-b-valor').value)||0;
     const aliqEfA = aliqEfetivaSimples(rbt12, anexoA);
     const aliqEfB = aliqEfetivaSimples(rbt12, anexoB);
     const dasA = fatA*aliqEfA, dasB = fatB*aliqEfB;
     totalSU = dasA + dasB;
-    aliqEf = fat>0 ? totalSU/fat : 0;
+    const fatSomaAB = fatA+fatB;
+    aliqEf = fatSomaAB>0 ? totalSU/fatSomaAB : 0;
     memSU.push(linhaMemoria('RBT12 informado (total da empresa, define a faixa nos dois Anexos)', rbt12));
-    memSU.push(linhaTexto(`Receita no Anexo ${anexoA} (${pct(pctA*100)} do faturamento)`, brl(fatA)));
+    memSU.push(linhaMemoria(`Faturamento informado no Anexo ${anexoA}`, fatA));
     memSU.push(linhaTexto(`Alíquota efetiva Anexo ${anexoA}`, pct(aliqEfA*100)));
     memSU.push(linhaMemoria(`DAS parcial — Anexo ${anexoA}`, dasA));
-    memSU.push(linhaTexto(`Receita no Anexo ${anexoB} (${pct((1-pctA)*100)} do faturamento)`, brl(fatB)));
+    memSU.push(linhaMemoria(`Faturamento informado no Anexo ${anexoB}`, fatB));
     memSU.push(linhaTexto(`Alíquota efetiva Anexo ${anexoB}`, pct(aliqEfB*100)));
     memSU.push(linhaMemoria(`DAS parcial — Anexo ${anexoB}`, dasB));
+    memSU.push(linhaMemoria('Faturamento mensal total (A + B)', fatSomaAB));
     memSU.push(linhaMemoria('DAS total (regime misto) = soma das parcelas por Anexo', totalSU));
     memSU.push(linhaTexto('Alíquota efetiva combinada (DAS total ÷ faturamento) — usada como referência nos demais cálculos', pct(aliqEf*100)));
   } else {
@@ -1091,7 +1117,14 @@ function montarResumoImpressao(resultados, regimeAtual, fat, rbt12){
     </div>`;
 }
 function imprimirComparativo(){
-  window.print();
+  const aviso = document.getElementById('print-aviso');
+  if(aviso) aviso.style.display = '';
+  try{
+    window.print();
+  }catch(e){
+    /* alguns navegadores/ambientes (ex.: página embutida em iframe) bloqueiam window.print() —
+       o resumo já está pronto e formatado; o aviso acima orienta o atalho manual */
+  }
 }
 
 function desenharGrafico(resultados, regimeAtual){
@@ -1249,7 +1282,7 @@ document.getElementById('cbsfracao').addEventListener('input', atualizarTrajetor
 
 function salvarSimulacao(){
   try{
-    const ids = ['regime','anexo','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','aliqreforma','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'];
+    const ids = ['regime','anexo-modo','anexo','anexo-a','anexo-b','anexo-a-valor','anexo-b-valor','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','aliqreforma','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'];
     const data = {}; ids.forEach(id=> data[id]=document.getElementById(id).value);
     localStorage.setItem('dossie-simulacao', JSON.stringify(data));
   }catch(e){}
@@ -1260,7 +1293,7 @@ function carregarSimulacao(){
     if(!raw) return;
     const data = JSON.parse(raw);
     Object.keys(data).forEach(id=>{ const el=document.getElementById(id); if(el) el.value = data[id]; });
-    calcular();
+    atualizarModoAnexo();
   }catch(e){}
 }
 
