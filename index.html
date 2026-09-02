@@ -438,7 +438,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
         <div class="btnrow" style="margin-top:16px;">
           <button class="btn primary" onclick="aplicarImportacao()">Aplicar ao Comparativo de Regimes</button>
         </div>
-        <div class="note" style="margin-top:12px;"><b>Cancelamento — NF-e:</b> detectado com confiança alta, por <code>cStat</code> do protocolo (101, 135, 151, 155, 301, 302 etc.) e por evento de cancelamento (tpEvento 110111/110112) presente no mesmo lote — a linha é riscada, marcada e excluída dos totais automaticamente. <b>Cancelamento — NFS-e:</b> detecção heurística (tags candidatas de cancelamento, campo de situação com "cancel" e nome do arquivo) — o schema oficial de cancelamento da NFS-e Padrão Nacional não pôde ser confirmado nesta base sem acesso à internet, então confira sempre as linhas marcadas antes de aplicar. Operação não tributável que não seja cancelamento (ex.: transferência, devolução, simples remessa) ainda precisa ser removida manualmente do lote — o parser não julga a natureza da operação, só o status fiscal.</div>
+        <div class="note" style="margin-top:12px;"><b>Cancelamento — NF-e:</b> detectado por <code>cStat</code> do protocolo (101, 135, 151, 155, 301, 302 etc.) e por evento de cancelamento (tpEvento 110111/110112) presente no mesmo lote — a linha é riscada, marcada e excluída dos totais automaticamente. <b>Cancelamento — NFS-e Padrão Nacional:</b> detectado com base no Schema XSD oficial da ADN (fornecido pelo usuário, versão 1.01) — eventos <code>e101101</code>, <code>e105102</code>, <code>e105104</code>, <code>e305101</code> e <code>e305102</code> excluem a nota dos totais via <code>chNFSe</code>; os eventos <code>e101103</code> (solicitação de análise pendente) e <code>e105105</code> (cancelamento indeferido) são reconhecidos mas <b>não</b> excluem a nota, pois ela permanece válida. Operação não tributável que não seja cancelamento (ex.: transferência, devolução, simples remessa) ainda precisa ser removida manualmente do lote — o parser não julga a natureza da operação, só o status fiscal.</div>
       </div>
     </section>
 
@@ -2835,42 +2835,83 @@ function renderNFe(){
   document.getElementById('nfe-count').textContent = `${nfeRows.length} arquivo(s)`+(nCancel?` · ${nCancel} cancelada(s)/denegada(s) excluída(s)`:'')+(nEvento?` · ${nEvento} evento(s)`:'');
 }
 
+/* Eventos NFS-e Padrão Nacional (schema oficial ADN, Schemas/1.01/tiposEventos_v1.01.xsd) —
+   cada tipo de evento é um ELEMENTO com nome próprio dentro de infPedReg, não um código tpEvento numérico. */
+const NFSE_EVENTOS_CANCELAM = {
+  e101101:'Cancelamento de NFS-e',
+  e105102:'Cancelamento de NFS-e por Substituição',
+  e105104:'Cancelamento de NFS-e Deferido por Análise Fiscal',
+  e305101:'Cancelamento de NFS-e por Ofício',
+  e305102:'Bloqueio de NFS-e por Ofício'
+};
+const NFSE_EVENTOS_INFORMATIVOS = {
+  e101103:'Solicitação de Análise Fiscal para Cancelamento — pendente, NFS-e ainda válida até deferimento',
+  e105105:'Cancelamento Indeferido por Análise Fiscal — pedido negado, NFS-e permanece válida'
+};
 let nfseRows = [];
 async function processarNFSe(){
   const files = document.getElementById('file-nfse').files;
   const cnpjCliente = clienteCNPJ();
-  nfseRows = [];
+  const brutos = [];
+  const chavesCanceladasPorEvento = new Set();
   for(const file of files){
     try{
       const text = await readFileAsText(file);
       const doc = new DOMParser().parseFromString(text, 'text/xml');
-      if(doc.getElementsByTagName('parsererror').length){ nfseRows.push({arquivo:file.name, erro:true}); continue; }
+      if(doc.getElementsByTagName('parsererror').length){ brutos.push({arquivo:file.name, erro:true}); continue; }
+
+      const infPedReg = doc.getElementsByTagName('infPedReg')[0];
+      if(infPedReg){
+        const chNFSeEvento = tagText(infPedReg,'chNFSe');
+        const tagCancel = Object.keys(NFSE_EVENTOS_CANCELAM).find(t=>infPedReg.getElementsByTagName(t).length>0);
+        const tagInfo = !tagCancel && Object.keys(NFSE_EVENTOS_INFORMATIVOS).find(t=>infPedReg.getElementsByTagName(t).length>0);
+        if(tagCancel){
+          if(chNFSeEvento) chavesCanceladasPorEvento.add(chNFSeEvento);
+          brutos.push({arquivo:file.name, evento:true, tipoEvento:NFSE_EVENTOS_CANCELAM[tagCancel], chave:chNFSeEvento, cancelaOrigem:true});
+        } else if(tagInfo){
+          brutos.push({arquivo:file.name, evento:true, tipoEvento:NFSE_EVENTOS_INFORMATIVOS[tagInfo], chave:chNFSeEvento, cancelaOrigem:false});
+        } else {
+          brutos.push({arquivo:file.name, evento:true, tipoEvento:'Evento NFS-e de tipo não mapeado neste sistema (confirmação/rejeição/manifestação)', chave:chNFSeEvento, cancelaOrigem:false});
+        }
+        continue;
+      }
+
       const prest = doc.getElementsByTagName('prest')[0];
       const toma = doc.getElementsByTagName('toma')[0];
       const prestCNPJ = onlyDigits(tagText(prest,'CNPJ'));
       const tomaCNPJ = onlyDigits(tagText(toma,'CNPJ'));
       const vServ = tagFloat(doc,'vServ') || tagFloat(doc,'vServPrest');
-      const vISS = tagFloat(doc,'vISSQN') || tagFloat(doc,'vISS');
+      const vISS = tagFloat(doc,'vISSQN');
       const naoReconhecido = !vServ && !prest && !toma;
-
-      let cancelada = ['cancelamento','infCanc','xMotivoCancelamento','infPedReg'].some(t=>doc.getElementsByTagName(t).length>0);
-      let motivoCancel = cancelada ? 'Tag de cancelamento/pedido de registro presente no XML' : '';
-      const sit = tagText(doc,'cSitNFSe') || tagText(doc,'situacao') || tagText(doc,'sitNFSe') || tagText(doc,'xSitNFSe');
-      if(sit && /cancel/i.test(sit)){ cancelada = true; motivoCancel = 'Situação indicada no XML: '+sit; }
-      if(/cancel/i.test(file.name)){ cancelada = true; motivoCancel = motivoCancel || 'Nome do arquivo indica cancelamento'; }
+      const infNFSe = doc.getElementsByTagName('infNFSe')[0];
+      const chave = infNFSe && infNFSe.getAttribute ? (infNFSe.getAttribute('Id')||'') : '';
 
       let tipo = 'Indefinido';
       if(cnpjCliente && prestCNPJ===cnpjCliente) tipo = 'Prestação';
       else if(cnpjCliente && tomaCNPJ===cnpjCliente) tipo = 'Tomada';
-      nfseRows.push({arquivo:file.name, tipo, valor:vServ, iss:vISS, prest:prestCNPJ, toma:tomaCNPJ, naoReconhecido, cancelada, motivoCancel});
-    }catch(e){ nfseRows.push({arquivo:file.name, erro:true}); }
+      brutos.push({arquivo:file.name, tipo, valor:vServ, iss:vISS, prest:prestCNPJ, toma:tomaCNPJ, naoReconhecido, chave});
+    }catch(e){ brutos.push({arquivo:file.name, erro:true}); }
   }
+  nfseRows = brutos.map(r=>{
+    if(r.erro || r.evento) return r;
+    let cancelada=false, motivoCancel='';
+    if(r.chave && chavesCanceladasPorEvento.has(r.chave)){
+      cancelada = true; motivoCancel = 'Cancelada — evento de cancelamento (chNFSe correspondente) presente no lote importado';
+    } else if(/cancel/i.test(r.arquivo)){
+      cancelada = true; motivoCancel = 'Nome do arquivo indica cancelamento (sinal fraco — confirme visualmente; não houve evento de cancelamento correspondente no lote)';
+    }
+    return {...r, cancelada, motivoCancel};
+  });
   renderNFSe();
   atualizarResumoImportacao();
 }
 function renderNFSe(){
   document.getElementById('nfse-tabela').innerHTML = nfseRows.map(r=>{
     if(r.erro) return `<tr><td>${r.arquivo}</td><td colspan="5" style="color:var(--critical)">Não foi possível ler este XML (arquivo inválido ou corrompido)</td></tr>`;
+    if(r.evento){
+      const cor = r.cancelaOrigem ? 'var(--critical)' : 'var(--warn)';
+      return `<tr><td>${r.arquivo}</td><td colspan="5" style="color:${cor}">Evento — ${r.tipoEvento}${r.chave?` (chave …${r.chave.slice(-8)})`:''} — não contabilizado</td></tr>`;
+    }
     if(r.naoReconhecido) return `<tr><td>${r.arquivo}</td><td colspan="5" style="color:var(--warn)">Não reconhecido — não corresponde ao schema padrão nacional (DPS/NFSe). Provável layout municipal legado.</td></tr>`;
     const pillClasse = r.cancelada ? 'crit' : (r.tipo==='Prestação'?'good':(r.tipo==='Tomada'?'accent':'warn'));
     const tipoLabel = r.cancelada ? 'Cancelada' : r.tipo;
@@ -2879,11 +2920,12 @@ function renderNFSe(){
     if(r.cancelada) linha += `<tr><td colspan="6" style="color:var(--critical);font-size:11.5px;padding-top:0;">↳ excluída dos totais — ${r.motivoCancel}</td></tr>`;
     return linha;
   }).join('') || '<tr><td colspan="6" style="color:var(--text-faint)">Nenhum arquivo processado ainda.</td></tr>';
-  const ok = nfseRows.filter(r=>!r.erro && !r.naoReconhecido && !r.cancelada);
+  const ok = nfseRows.filter(r=>!r.erro && !r.evento && !r.naoReconhecido && !r.cancelada);
   document.getElementById('nfse-tot-valor').textContent = brl(ok.reduce((s,r)=>s+r.valor,0));
   document.getElementById('nfse-tot-iss').textContent = brl(ok.reduce((s,r)=>s+r.iss,0));
   const nCancel = nfseRows.filter(r=>r.cancelada).length;
-  document.getElementById('nfse-count').textContent = `${nfseRows.length} arquivo(s)`+(nCancel?` · ${nCancel} cancelada(s) excluída(s)`:'');
+  const nEvento = nfseRows.filter(r=>r.evento).length;
+  document.getElementById('nfse-count').textContent = `${nfseRows.length} arquivo(s)`+(nCancel?` · ${nCancel} cancelada(s) excluída(s)`:'')+(nEvento?` · ${nEvento} evento(s)`:'');
 }
 
 let dreRows = [];
@@ -3037,7 +3079,7 @@ function valorDREMapeado(chave){
 function atualizarResumoImportacao(){
   const meses = Math.max(parseFloat(document.getElementById('imp-meses').value)||1, 1);
   const okNFe = nfeRows.filter(r=>!r.erro && !r.evento && !r.cancelada);
-  const okNFSe = nfseRows.filter(r=>!r.erro && !r.naoReconhecido && !r.cancelada);
+  const okNFSe = nfseRows.filter(r=>!r.erro && !r.evento && !r.naoReconhecido && !r.cancelada);
   const saidaNFe = okNFe.filter(r=>r.tipo==='Saída').reduce((s,r)=>s+r.valor,0);
   const entradaNFe = okNFe.filter(r=>r.tipo==='Entrada').reduce((s,r)=>s+r.valor,0);
   const icmsSaida = okNFe.filter(r=>r.tipo==='Saída').reduce((s,r)=>s+r.icms,0);
@@ -3059,7 +3101,7 @@ document.getElementById('imp-meses').addEventListener('input', atualizarResumoIm
 function aplicarImportacao(){
   const meses = Math.max(parseFloat(document.getElementById('imp-meses').value)||1, 1);
   const okNFe = nfeRows.filter(r=>!r.erro && !r.evento && !r.cancelada);
-  const okNFSe = nfseRows.filter(r=>!r.erro && !r.naoReconhecido && !r.cancelada);
+  const okNFSe = nfseRows.filter(r=>!r.erro && !r.evento && !r.naoReconhecido && !r.cancelada);
   const saidaNFe = okNFe.filter(r=>r.tipo==='Saída').reduce((s,r)=>s+r.valor,0);
   const entradaNFe = okNFe.filter(r=>r.tipo==='Entrada').reduce((s,r)=>s+r.valor,0);
   const icmsSaida = okNFe.filter(r=>r.tipo==='Saída').reduce((s,r)=>s+r.icms,0);
