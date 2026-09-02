@@ -248,11 +248,15 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
   #print-portal #print-header h1{ font-family:'Source Serif 4',Georgia,serif; font-size:19px; margin:6px 0 2px; }
   #print-portal #print-header table{ margin-top:10px; font-size:12px; }
   #print-portal #print-header td{ padding:3px 10px 3px 0; }
-  #print-portal .kpi-row{ display:grid !important; grid-template-columns:repeat(4,1fr) !important; gap:10px; }
-  #print-portal .kpi{ border:1px solid #ccc !important; break-inside:avoid; }
+  #print-portal .kpi-row{ display:grid !important; grid-template-columns:repeat(2,1fr) !important; gap:10px; }
+  #print-portal .kpi{ border:1px solid #ccc !important; break-inside:avoid; min-width:0; overflow:hidden; }
+  #print-portal .kpi *{ min-width:0; overflow-wrap:break-word; }
+  #print-portal .kpi .v{ font-size:17px; }
   #print-portal .table-wrap{ overflow:visible !important; }
-  #print-portal svg{ max-width:100%; }
+  #print-portal .table-wrap table{ width:100%; table-layout:fixed; }
+  #print-portal svg{ max-width:100%; height:auto; overflow:visible; }
   #print-portal .btnrow{ display:none !important; }
+  #print-portal, #print-portal *{ max-width:100%; }
 }
 </style>
 
@@ -1129,9 +1133,9 @@ function imprimirComparativo(){
 
 function desenharGrafico(resultados, regimeAtual){
   const max = Math.max(...Object.values(resultados), 1)*1.15;
-  const W=600, padL=190, padR=100, top=16, barH=28, gap=40;
+  const W=600, padL=175, padR=105, top=16, barH=28, gap=42;
   const scale = v => (v/max)*(W-padL-padR);
-  const styleText = "font-size:11.5px;";
+  const styleText = "font-size:11px;";
   const muted = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#5B6B62';
   const border = getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#ccc';
   const keys = Object.keys(resultados);
@@ -1146,7 +1150,16 @@ function desenharGrafico(resultados, regimeAtual){
     const v = resultados[k];
     const w = Math.max(scale(v),2);
     const isAtual = k===regimeAtual;
-    s += `<text x="${padL-10}" y="${y+barH/2+4}" text-anchor="end" style="${styleText}${isAtual?'font-weight:700;':''}" fill="${isAtual?color:muted}">${meta.label}</text>`;
+    const labelX = padL-10;
+    const labelFill = isAtual?color:muted;
+    const labelWeight = isAtual?'font-weight:700;':'';
+    const partes = meta.label.split(' — ');
+    if(partes.length===2){
+      s += `<text x="${labelX}" y="${y+barH/2-3}" text-anchor="end" style="${styleText}${labelWeight}" fill="${labelFill}">${partes[0]}</text>`;
+      s += `<text x="${labelX}" y="${y+barH/2+11}" text-anchor="end" style="${styleText}${labelWeight}" fill="${labelFill}">${partes[1]}</text>`;
+    }else{
+      s += `<text x="${labelX}" y="${y+barH/2+4}" text-anchor="end" style="${styleText}${labelWeight}" fill="${labelFill}">${meta.label}</text>`;
+    }
     s += `<rect x="${padL}" y="${y}" width="${w}" height="${barH}" rx="4" fill="${color}" opacity="${isAtual?1:0.72}"/>`;
     s += `<text x="${padL+w+10}" y="${y+barH/2+4}" style="${styleText}font-weight:600;" fill="${color}">${brl(v)}</text>`;
   });
