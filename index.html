@@ -442,7 +442,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
         <div class="btnrow" style="margin-top:16px;">
           <button class="btn primary" onclick="aplicarImportacao()">Aplicar ao Comparativo de Regimes</button>
         </div>
-        <div class="note" style="margin-top:12px;"><b>Cancelamento — NF-e:</b> detectado por <code>cStat</code> do protocolo (101, 135, 151, 155, 301, 302 etc.) e por evento de cancelamento (tpEvento 110111/110112) presente no mesmo lote — a linha é riscada, marcada e excluída dos totais automaticamente. <b>Cancelamento — NFS-e Padrão Nacional:</b> detectado com base no Schema XSD oficial da ADN (fornecido pelo usuário, versão 1.01) — eventos <code>e101101</code>, <code>e105102</code>, <code>e105104</code>, <code>e305101</code> e <code>e305102</code> excluem a nota dos totais via <code>chNFSe</code>; os eventos <code>e101103</code> (solicitação de análise pendente) e <code>e105105</code> (cancelamento indeferido) são reconhecidos mas <b>não</b> excluem a nota, pois ela permanece válida. Operação não tributável que não seja cancelamento (ex.: transferência, devolução, simples remessa) ainda precisa ser removida manualmente do lote — o parser não julga a natureza da operação, só o status fiscal.</div>
+        <div class="note" style="margin-top:12px;"><b>NF-e — válida:</b> apenas <code>cStat</code> 100 (autorizada) e 150 (autorizada fora do prazo, mas válida) mantêm a nota nos totais. <b>NF-e — cancelada/denegada:</b> qualquer outro <code>cStat</code> do protocolo (101, 135, 151, 155, 301, 302 etc.) ou evento de cancelamento (tpEvento 110111/110112) vinculado pela chave no mesmo lote — a linha é riscada, marcada e excluída dos totais automaticamente. <b>NF-e — numeração inutilizada:</b> arquivo de Inutilização (<code>ProcInutNFe</code>/<code>retInutNFe</code>/<code>infInut</code>) é identificado e listado à parte (faixa de numeração, série, ano) — nunca corresponde a um documento fiscal emitido, então não entra nos totais nem é tratado como cancelamento. <i>Atenção: a leitura da inutilização segue a estrutura padrão do Manual de Orientação do Contribuinte da NF-e, mas — diferente do cancelamento, cujas tags foram conferidas contra o schema oficial — não foi validada aqui contra um XSD fornecido; se algum arquivo de inutilização não for reconhecido, envie o schema para conferência.</i> <b>Cancelamento — NFS-e Padrão Nacional:</b> detectado com base no Schema XSD oficial da ADN (fornecido pelo usuário, versão 1.01) — eventos <code>e101101</code>, <code>e105102</code>, <code>e105104</code>, <code>e305101</code> e <code>e305102</code> excluem a nota dos totais via <code>chNFSe</code>; os eventos <code>e101103</code> (solicitação de análise pendente) e <code>e105105</code> (cancelamento indeferido) são reconhecidos mas <b>não</b> excluem a nota, pois ela permanece válida. Operação não tributável que não seja cancelamento (ex.: transferência, devolução, simples remessa) ainda precisa ser removida manualmente do lote — o parser não julga a natureza da operação, só o status fiscal.</div>
       </div>
     </section>
 
@@ -2757,7 +2757,12 @@ function readFileAsArrayBuffer(file){
   });
 }
 
-/* cStat que indicam NF-e não válida para efeitos fiscais (cancelada, denegada, etc.) — Manual de Orientação do Contribuinte NF-e */
+/* cStat da NF-e (protNFe) — Manual de Orientação do Contribuinte NF-e.
+   100 e 150 são os ÚNICOS status que mantêm a NF-e válida para efeitos fiscais
+   (150 = autorizada fora do prazo de resposta do SLA, mas autorizada). Qualquer
+   outro cStat indica cancelamento, denegação ou outra situação que invalida o
+   documento e por isso deve ser excluído dos totais. */
+const NFE_CSTAT_VALIDOS = new Set(['100','150']);
 const NFE_CSTAT_EXCLUIR = {
   '101':'Cancelamento de NF-e homologado',
   '135':'Evento registrado e vinculado à NF-e — cancelamento por SVC',
@@ -2778,6 +2783,25 @@ async function processarNFe(){
       const text = await readFileAsText(file);
       const doc = new DOMParser().parseFromString(text, 'text/xml');
       if(doc.getElementsByTagName('parsererror').length){ brutos.push({arquivo:file.name, erro:true}); continue; }
+
+      /* Inutilização de numeração (ProcInutNFe/retInutNFe/infInut) — não é um evento vinculado a uma
+         NF-e específica, e sim a confirmação de que uma faixa de números nunca foi emitida. Não deve
+         ser contabilizada nem tratada como se fosse uma NF-e normal. */
+      const infInutLista = doc.getElementsByTagName('infInut');
+      let infInut = null;
+      for(let i=0;i<infInutLista.length;i++){ if(infInutLista[i].getElementsByTagName('cStat').length){ infInut = infInutLista[i]; break; } }
+      if(!infInut && infInutLista.length) infInut = infInutLista[0];
+      const raizNome = doc.documentElement ? doc.documentElement.tagName.replace(/^\w+:/,'') : '';
+      if(infInut || /^(ProcInutNFe|retInutNFe|inutNFe)$/.test(raizNome)){
+        const base = infInut || doc;
+        const cStatInut = tagText(base,'cStat');
+        brutos.push({
+          arquivo:file.name, inutilizacao:true,
+          serie: tagText(base,'serie'), nIni: tagText(base,'nNFIni'), nFin: tagText(base,'nNFFin'),
+          ano: tagText(base,'ano'), cStatInut, homologada: cStatInut==='102'
+        });
+        continue;
+      }
 
       const tpEvento = tagText(doc,'tpEvento');
       if(tpEvento){
@@ -2811,9 +2835,9 @@ async function processarNFe(){
     }catch(e){ brutos.push({arquivo:file.name, erro:true}); }
   }
   nfeRows = brutos.map(r=>{
-    if(r.erro || r.evento) return r;
+    if(r.erro || r.evento || r.inutilizacao) return r;
     let cancelada=false, motivoCancel='';
-    if(r.cStat && r.cStat!=='100'){
+    if(r.cStat && !NFE_CSTAT_VALIDOS.has(r.cStat)){
       cancelada = true;
       motivoCancel = NFE_CSTAT_EXCLUIR[r.cStat] || (r.xMotivo ? r.xMotivo : `Status fiscal cStat ${r.cStat} — não autorizado`);
     }
@@ -2830,6 +2854,7 @@ function renderNFe(){
   document.getElementById('nfe-tabela').innerHTML = nfeRows.map(r=>{
     if(r.erro) return `<tr><td>${r.arquivo}</td><td colspan="6" style="color:var(--critical)">Não foi possível ler este XML (arquivo inválido ou corrompido)</td></tr>`;
     if(r.evento) return `<tr><td>${r.arquivo}</td><td colspan="6" style="color:var(--text-faint)">Evento — ${r.tipoEvento}${r.chave?` (chave …${r.chave.slice(-8)})`:''} — não contabilizado</td></tr>`;
+    if(r.inutilizacao) return `<tr><td>${r.arquivo}</td><td colspan="6" style="color:var(--text-faint)">Inutilização de numeração — série ${r.serie||'—'}, nº ${r.nIni||'—'} a ${r.nFin||'—'}${r.ano?`/${r.ano}`:''}${r.homologada?' (homologada)':r.cStatInut?` (cStat ${r.cStatInut})`:''} — faixa nunca emitida, não corresponde a documento fiscal, não contabilizada</td></tr>`;
     const pillClasse = r.cancelada ? 'crit' : (r.tipo==='Saída'?'good':(r.tipo==='Entrada'?'accent':'warn'));
     const tipoLabel = r.cancelada ? 'Cancelada/Denegada' : r.tipo;
     const rowStyle = r.cancelada ? ' style="opacity:.55;"' : '';
@@ -2837,7 +2862,7 @@ function renderNFe(){
     if(r.cancelada) linha += `<tr><td colspan="7" style="color:var(--critical);font-size:11.5px;padding-top:0;">↳ excluída dos totais — ${r.motivoCancel}</td></tr>`;
     return linha;
   }).join('') || '<tr><td colspan="7" style="color:var(--text-faint)">Nenhum arquivo processado ainda.</td></tr>';
-  const ok = nfeRows.filter(r=>!r.erro && !r.evento && !r.cancelada);
+  const ok = nfeRows.filter(r=>!r.erro && !r.evento && !r.inutilizacao && !r.cancelada);
   const tot = (tipo,campo)=>ok.filter(r=>tipo?r.tipo===tipo:true).reduce((s,r)=>s+r[campo],0);
   document.getElementById('nfe-tot-valor').textContent = brl(tot(null,'valor'));
   document.getElementById('nfe-tot-icms').textContent = brl(tot(null,'icms'));
@@ -2845,7 +2870,8 @@ function renderNFe(){
   document.getElementById('nfe-tot-cofins').textContent = brl(tot(null,'cofins'));
   const nCancel = nfeRows.filter(r=>r.cancelada).length;
   const nEvento = nfeRows.filter(r=>r.evento).length;
-  document.getElementById('nfe-count').textContent = `${nfeRows.length} arquivo(s)`+(nCancel?` · ${nCancel} cancelada(s)/denegada(s) excluída(s)`:'')+(nEvento?` · ${nEvento} evento(s)`:'');
+  const nInut = nfeRows.filter(r=>r.inutilizacao).length;
+  document.getElementById('nfe-count').textContent = `${nfeRows.length} arquivo(s)`+(nCancel?` · ${nCancel} cancelada(s)/denegada(s) excluída(s)`:'')+(nEvento?` · ${nEvento} evento(s)`:'')+(nInut?` · ${nInut} inutilização(ões)`:'');
 }
 
 /* Eventos NFS-e Padrão Nacional (schema oficial ADN, Schemas/1.01/tiposEventos_v1.01.xsd) —
@@ -3091,7 +3117,7 @@ function valorDREMapeado(chave){
 
 function atualizarResumoImportacao(){
   const meses = Math.max(parseFloat(document.getElementById('imp-meses').value)||1, 1);
-  const okNFe = nfeRows.filter(r=>!r.erro && !r.evento && !r.cancelada);
+  const okNFe = nfeRows.filter(r=>!r.erro && !r.evento && !r.inutilizacao && !r.cancelada);
   const okNFSe = nfseRows.filter(r=>!r.erro && !r.evento && !r.naoReconhecido && !r.cancelada);
   const saidaNFe = okNFe.filter(r=>r.tipo==='Saída').reduce((s,r)=>s+r.valor,0);
   const entradaNFe = okNFe.filter(r=>r.tipo==='Entrada').reduce((s,r)=>s+r.valor,0);
@@ -3113,7 +3139,7 @@ document.getElementById('imp-meses').addEventListener('input', atualizarResumoIm
 
 function aplicarImportacao(){
   const meses = Math.max(parseFloat(document.getElementById('imp-meses').value)||1, 1);
-  const okNFe = nfeRows.filter(r=>!r.erro && !r.evento && !r.cancelada);
+  const okNFe = nfeRows.filter(r=>!r.erro && !r.evento && !r.inutilizacao && !r.cancelada);
   const okNFSe = nfseRows.filter(r=>!r.erro && !r.evento && !r.naoReconhecido && !r.cancelada);
   const saidaNFe = okNFe.filter(r=>r.tipo==='Saída').reduce((s,r)=>s+r.valor,0);
   const entradaNFe = okNFe.filter(r=>r.tipo==='Entrada').reduce((s,r)=>s+r.valor,0);
