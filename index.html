@@ -231,6 +231,23 @@ tfoot td{ font-weight:600; border-top:1px solid var(--border); border-bottom:non
 
 .foot-mini{ font-size:11px; color:var(--text-faint); text-align:right; margin-top:2px;}
 svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
+
+/* ---------- impressão do comparativo resumido ---------- */
+.print-only{ display:none; }
+#print-summary table{ font-size:12px; }
+#print-summary th, #print-summary td{ padding:7px 8px; }
+@media print{
+  body *{ visibility:hidden; }
+  #print-summary, #print-summary *{ visibility:visible; }
+  #print-summary{
+    display:block !important; position:absolute; left:0; top:0; width:100%;
+    color:#182420; background:#fff; font-family:'Public Sans',system-ui,sans-serif;
+  }
+  #print-summary h1{ font-family:'Source Serif 4',Georgia,serif; }
+  #print-summary table{ width:100%; border-collapse:collapse; }
+  #print-summary th,#print-summary td{ border-bottom:1px solid #ccc; text-align:left; }
+  #print-summary td.num, #print-summary th.num{ text-align:right; font-family:'IBM Plex Mono',monospace; }
+}
 </style>
 
 <div class="shell">
@@ -484,6 +501,24 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
             </select>
           </div>
           <div class="field">
+            <label>Atividade (Presumido/Real)</label>
+            <select id="atividade">
+              <option value="comercio">Comércio / Indústria</option>
+              <option value="servicos" selected>Serviços (presunção 32%)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Enquadramento no Simples Nacional</label>
+            <select id="anexo-modo">
+              <option value="unico">Anexo único</option>
+              <option value="misto">Regime misto — receita segregada em 2 Anexos</option>
+            </select>
+            <div class="hint">Atividades mistas (ex.: comércio + serviço no mesmo CNPJ) apuram cada parcela de receita pelo seu próprio Anexo (LC 123/2006, art. 18, §4º).</div>
+          </div>
+        </div>
+
+        <div class="grid3" style="margin-top:14px;" id="wrap-anexo-unico">
+          <div class="field">
             <label>Anexo do Simples Nacional</label>
             <select id="anexo">
               <option value="I">Anexo I — Comércio</option>
@@ -493,12 +528,33 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
               <option value="V">Anexo V — Serviços (fator R &lt; 28%)</option>
             </select>
           </div>
+        </div>
+
+        <div class="grid3" style="margin-top:14px; display:none;" id="wrap-anexo-misto">
           <div class="field">
-            <label>Atividade (Presumido/Real)</label>
-            <select id="atividade">
-              <option value="comercio">Comércio / Indústria</option>
-              <option value="servicos" selected>Serviços (presunção 32%)</option>
+            <label>Anexo A</label>
+            <select id="anexo-a">
+              <option value="I" selected>Anexo I — Comércio</option>
+              <option value="II">Anexo II — Indústria</option>
+              <option value="III">Anexo III — Serviços</option>
+              <option value="IV">Anexo IV — Serviços (sem CPP na tabela)</option>
+              <option value="V">Anexo V — Serviços (fator R &lt; 28%)</option>
             </select>
+          </div>
+          <div class="field">
+            <label>Anexo B</label>
+            <select id="anexo-b">
+              <option value="I">Anexo I — Comércio</option>
+              <option value="II">Anexo II — Indústria</option>
+              <option value="III" selected>Anexo III — Serviços</option>
+              <option value="IV">Anexo IV — Serviços (sem CPP na tabela)</option>
+              <option value="V">Anexo V — Serviços (fator R &lt; 28%)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>% do faturamento no Anexo A</label>
+            <input type="number" id="anexo-a-pct" value="50" min="0" max="100" step="1">
+            <div class="hint">O restante (100% − este valor) é tributado pelo Anexo B. A RBT12 total define a faixa/alíquota nominal em cada Anexo — só a base de cálculo da parcela é segregada.</div>
           </div>
         </div>
 
@@ -599,7 +655,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
       <div class="card">
         <div class="card-head">
           <h2>Resultado da simulação — 4 regimes</h2>
-          <div class="btnrow"><button class="btn" onclick="salvarSimulacao()">Salvar</button><button class="btn" onclick="carregarSimulacao()">Carregar última</button></div>
+          <div class="btnrow"><button class="btn" onclick="salvarSimulacao()">Salvar</button><button class="btn" onclick="carregarSimulacao()">Carregar última</button><button class="btn primary" onclick="imprimirComparativo()">Imprimir / PDF</button></div>
         </div>
 
         <div class="kpi-row" id="kpi-row-regimes"></div>
@@ -618,6 +674,8 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
         <div class="note" style="margin-top:14px;">
           <b>Fórmula do IVA dual:</b> <span class="num">CBS+IBS devido = (Receita − Compras/insumos creditáveis) × Alíquota de referência</span>. Reproduz a lógica débito/crédito de um IVA cheio: incide sobre o valor agregado, e não sobre o faturamento bruto — diferente do PIS/COFINS cumulativo do Presumido e do Simples Único, que incidem sobre a receita total.
         </div>
+
+        <div id="print-summary" class="print-only"></div>
       </div>
 
       <div class="card">
@@ -756,7 +814,7 @@ function salvarCliente(){
 
 /* ---------- BRL / pct format ---------- */
 const brl = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-const pct = v => v.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:2})+'%';
+const pct = v => v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2})+'%';
 
 /* ---------- Simples Nacional tables (LC 123/2006, Anexos I-V, redação LC 155/2016) ---------- */
 const SIMPLES = {
@@ -774,12 +832,34 @@ function aliqEfetivaSimples(rbt12, anexo){
   const efetiva = rbt12>0 ? ((rbt12*aliqNom - pd)/rbt12) : aliqNom;
   return Math.max(efetiva, 0);
 }
+/* Regime único ou misto (receita segregada em 2 Anexos, LC 123/2006 art. 18, §4º) — retorna {aliqEf, totalSU} */
+function simplesUnicoOuMisto(fat, rbt12){
+  const misto = document.getElementById('anexo-modo').value==='misto';
+  if(!misto){
+    const anexo = document.getElementById('anexo').value;
+    const aliqEf = aliqEfetivaSimples(rbt12, anexo);
+    return { aliqEf, totalSU: fat*aliqEf };
+  }
+  const anexoA = document.getElementById('anexo-a').value;
+  const anexoB = document.getElementById('anexo-b').value;
+  const pctA = (parseFloat(document.getElementById('anexo-a-pct').value)||0)/100;
+  const fatA = fat*pctA, fatB = fat*(1-pctA);
+  const totalSU = fatA*aliqEfetivaSimples(rbt12, anexoA) + fatB*aliqEfetivaSimples(rbt12, anexoB);
+  return { aliqEf: fat>0 ? totalSU/fat : 0, totalSU };
+}
 
 /* ---------- regime highlight + inputs ---------- */
 document.getElementById('regime').addEventListener('change', calcular);
-['anexo','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','aliqreforma','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'].forEach(id=>{
+['anexo','anexo-a','anexo-b','anexo-a-pct','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','aliqreforma','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'].forEach(id=>{
   document.getElementById(id).addEventListener('input', calcular);
 });
+function atualizarModoAnexo(){
+  const misto = document.getElementById('anexo-modo').value==='misto';
+  document.getElementById('wrap-anexo-unico').style.display = misto ? 'none' : '';
+  document.getElementById('wrap-anexo-misto').style.display = misto ? '' : 'none';
+  calcular();
+}
+document.getElementById('anexo-modo').addEventListener('change', atualizarModoAnexo);
 
 function linhaMemoria(desc, valor){
   return `<tr><td>${desc}</td><td class="num">${brl(valor)}</td></tr>`;
@@ -823,13 +903,36 @@ function calcular(){
   const despesasCreditaveis = despEnergia+despAluguel+despServicos+despTelecom+despOutras;
   document.getElementById('desp-total').textContent = brl(despesasCreditaveis);
 
-  /* ---- Simples Nacional — Regime Único ---- */
-  const aliqEf = aliqEfetivaSimples(rbt12, anexo);
-  const totalSU = fat*aliqEf;
+  /* ---- Simples Nacional — Regime Único (anexo único ou regime misto) ---- */
+  const anexoMisto = document.getElementById('anexo-modo').value==='misto';
+  let aliqEf, totalSU;
   const memSU = [];
-  memSU.push(linhaMemoria(`RBT12 informado — Anexo ${anexo}`, rbt12));
-  memSU.push(linhaTexto('Alíquota efetiva = (RBT12×Alíq.nominal − Parcela a deduzir) ÷ RBT12', pct(aliqEf*100)));
-  memSU.push(linhaMemoria('DAS devido (Faturamento × Alíq. efetiva) — inclui IRPJ/CSLL/CPP/PIS/COFINS/ICMS-ISS embutidos', totalSU));
+  if(anexoMisto){
+    const anexoA = document.getElementById('anexo-a').value;
+    const anexoB = document.getElementById('anexo-b').value;
+    const pctA = (parseFloat(document.getElementById('anexo-a-pct').value)||0)/100;
+    const fatA = fat*pctA, fatB = fat*(1-pctA);
+    const aliqEfA = aliqEfetivaSimples(rbt12, anexoA);
+    const aliqEfB = aliqEfetivaSimples(rbt12, anexoB);
+    const dasA = fatA*aliqEfA, dasB = fatB*aliqEfB;
+    totalSU = dasA + dasB;
+    aliqEf = fat>0 ? totalSU/fat : 0;
+    memSU.push(linhaMemoria('RBT12 informado (total da empresa, define a faixa nos dois Anexos)', rbt12));
+    memSU.push(linhaTexto(`Receita no Anexo ${anexoA} (${pct(pctA*100)} do faturamento)`, brl(fatA)));
+    memSU.push(linhaTexto(`Alíquota efetiva Anexo ${anexoA}`, pct(aliqEfA*100)));
+    memSU.push(linhaMemoria(`DAS parcial — Anexo ${anexoA}`, dasA));
+    memSU.push(linhaTexto(`Receita no Anexo ${anexoB} (${pct((1-pctA)*100)} do faturamento)`, brl(fatB)));
+    memSU.push(linhaTexto(`Alíquota efetiva Anexo ${anexoB}`, pct(aliqEfB*100)));
+    memSU.push(linhaMemoria(`DAS parcial — Anexo ${anexoB}`, dasB));
+    memSU.push(linhaMemoria('DAS total (regime misto) = soma das parcelas por Anexo', totalSU));
+    memSU.push(linhaTexto('Alíquota efetiva combinada (DAS total ÷ faturamento) — usada como referência nos demais cálculos', pct(aliqEf*100)));
+  } else {
+    aliqEf = aliqEfetivaSimples(rbt12, anexo);
+    totalSU = fat*aliqEf;
+    memSU.push(linhaMemoria(`RBT12 informado — Anexo ${anexo}`, rbt12));
+    memSU.push(linhaTexto('Alíquota efetiva = (RBT12×Alíq.nominal − Parcela a deduzir) ÷ RBT12', pct(aliqEf*100)));
+    memSU.push(linhaMemoria('DAS devido (Faturamento × Alíq. efetiva) — inclui IRPJ/CSLL/CPP/PIS/COFINS/ICMS-ISS embutidos', totalSU));
+  }
 
   /* ---- Simples Nacional — Regime Híbrido (LC 214/2025, art. 41, §3º) ---- */
   const componenteEmbutido = aliqEf*percEmbutidoPct;
@@ -939,8 +1042,56 @@ function calcular(){
     Crédito pleno no Regime Híbrido = Receita B2B × alíquota efetiva (${pct(aliqReformaEfetiva*100)}) = <span class="num">${brl(creditoHibridoComprador)}</span>/mês.<br>
     <b>Ganho de competitividade ao comprador ≈ ${brl(ganhoCredito)}/mês</b> — argumento comercial para a migração, ainda que a carga própria do prestador no Híbrido seja ${totalSH>totalSU?'maior':'menor'} que no Regime Único (LC 214/2025, art. 41, §3º; Resolução CGSN 183/2025). Lembrar: pedido de ressarcimento de crédito sobre bens de capital no Híbrido trava o retorno ao Regime Único por 2 anos.`;
 
+  montarResumoImpressao(resultados, regimeAtual, fat, rbt12);
   desenharGrafico(resultados, regimeAtual);
   atualizarTrajetoria();
+}
+
+function montarResumoImpressao(resultados, regimeAtual, fat, rbt12){
+  const el = document.getElementById('print-summary');
+  if(!el) return;
+  const cliente = document.getElementById('cli-nome').value || 'Cliente não identificado';
+  const cnpj = document.getElementById('cli-cnpj').value;
+  const hoje = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
+  const menor = Math.min(...Object.values(resultados));
+  const linhas = Object.keys(resultados).map(k=>{
+    const v = resultados[k];
+    const meta = REGIME_META[k];
+    const marcador = [k===regimeAtual?'atual':null, Math.abs(v-menor)<0.005?'menor carga':null].filter(Boolean).join(' · ');
+    return `<tr><td>${meta.label}${marcador?` <span style="font-size:10.5px;color:#5B6B62;">(${marcador})</span>`:''}</td><td class="num">${brl(v)}</td><td class="num">${fat>0?pct(v/fat*100):'—'}</td></tr>`;
+  }).join('');
+  el.innerHTML = `
+    <div style="padding:36px 40px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #16232B; padding-bottom:14px; margin-bottom:20px;">
+        <div>
+          <div style="font-weight:700; font-size:14px;">RP Assessoria Contábil</div>
+          <div style="font-size:11px; color:#5B6B62;">Clareza em cada número</div>
+        </div>
+        <div style="text-align:right; font-size:11px; color:#5B6B62;">Emitido em ${hoje}</div>
+      </div>
+      <h1 style="font-size:19px; margin:0 0 4px;">Comparativo de Regimes — Reforma Tributária</h1>
+      <div style="font-size:12px; color:#5B6B62; margin-bottom:18px;">EC 132/2023 · LC 214/2025 · Simulação técnica de referência</div>
+
+      <table style="margin-bottom:18px;">
+        <tbody>
+          <tr><td style="width:160px; color:#5B6B62;">Cliente</td><td>${cliente}${cnpj?' — CNPJ '+cnpj:''}</td></tr>
+          <tr><td style="color:#5B6B62;">Faturamento mensal</td><td class="num">${brl(fat)}</td></tr>
+          <tr><td style="color:#5B6B62;">RBT12</td><td class="num">${brl(rbt12)}</td></tr>
+        </tbody>
+      </table>
+
+      <table>
+        <thead><tr><th>Regime</th><th class="num">Carga R$/mês</th><th class="num">% da receita</th></tr></thead>
+        <tbody>${linhas}</tbody>
+      </table>
+
+      <div style="margin-top:22px; font-size:10.5px; color:#5B6B62; line-height:1.5;">
+        Alíquotas do IBS/CBS ainda não fixadas em definitivo pelo Senado Federal — simulação sujeita a atualização. Memória de cálculo completa disponível no sistema. RP Assessoria Contábil — Ribeirão Preto/SP.
+      </div>
+    </div>`;
+}
+function imprimirComparativo(){
+  window.print();
 }
 
 function desenharGrafico(resultados, regimeAtual){
@@ -996,7 +1147,6 @@ function calcularTrajetoria(){
   const aliqCBS = aliqReforma*redutor*cbsFracao;
   const aliqIBS = aliqReforma*redutor*(1-cbsFracao);
   const rbt12 = parseFloat(document.getElementById('rbt12').value)||0;
-  const anexo = document.getElementById('anexo').value;
   const percEmbutidoPct = (parseFloat(document.getElementById('percembutido').value)||0)/100;
 
   const despEnergia = parseFloat(document.getElementById('desp-energia').value)||0;
@@ -1020,8 +1170,7 @@ function calcularTrajetoria(){
   const baseCredIVA = (fat*insumosPct + despesasCreditaveis)*credAplic;
   const baseTribIVA = Math.max(fat-baseCredIVA,0);
 
-  const aliqEf = aliqEfetivaSimples(rbt12, anexo);
-  const totalSU_fixo = fat*aliqEf;
+  const { aliqEf, totalSU: totalSU_fixo } = simplesUnicoOuMisto(fat, rbt12);
   const componenteEmbutido = aliqEf*percEmbutidoPct;
   const dasReduzido = fat*(aliqEf-componenteEmbutido);
   const baseCredHibrido = (fat*insumosPct + despesasCreditaveis)*credAplic;
