@@ -374,7 +374,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           <div class="kpi"><div class="l">PIS</div><div class="v" id="nfe-tot-pis">—</div></div>
           <div class="kpi"><div class="l">COFINS</div><div class="v" id="nfe-tot-cofins">—</div></div>
         </div>
-        <details style="margin-top:12px;">
+        <details id="nfe-detalhe" style="margin-top:12px;">
           <summary style="cursor:pointer;color:var(--text-muted);font-size:12.5px;">Ver detalhamento por nota importada</summary>
           <div class="table-wrap" style="margin-top:10px;">
             <table>
@@ -399,7 +399,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           <div class="kpi"><div class="l">Total serviço (líquido de canceladas)</div><div class="v" id="nfse-tot-valor">—</div></div>
           <div class="kpi"><div class="l">ISS</div><div class="v" id="nfse-tot-iss">—</div></div>
         </div>
-        <details style="margin-top:12px;">
+        <details id="nfse-detalhe" style="margin-top:12px;">
           <summary style="cursor:pointer;color:var(--text-muted);font-size:12.5px;">Ver detalhamento por nota importada</summary>
           <div class="table-wrap" style="margin-top:10px;">
             <table>
@@ -2826,6 +2826,12 @@ const NFE_CSTAT_EXCLUIR = {
 let nfeRows = [];
 async function processarNFe(){
   const files = document.getElementById('file-nfe').files;
+  if(!files || !files.length){
+    const det = document.getElementById('nfe-detalhe');
+    if(det) det.open = true;
+    document.getElementById('nfe-tabela').innerHTML = '<tr><td colspan="7" style="color:var(--critical)">Nenhum arquivo selecionado — clique em "Escolher arquivos" e selecione o(s) XML ou .zip antes de clicar em "Processar NF-e".</td></tr>';
+    return;
+  }
   const cnpjCliente = clienteCNPJ();
   const brutos = [];
   const chavesCanceladasPorEvento = new Set();
@@ -2923,7 +2929,10 @@ function renderNFe(){
   const nCancel = nfeRows.filter(r=>r.cancelada).length;
   const nEvento = nfeRows.filter(r=>r.evento).length;
   const nInut = nfeRows.filter(r=>r.inutilizacao).length;
-  document.getElementById('nfe-count').textContent = `${nfeRows.length} arquivo(s)`+(nCancel?` · ${nCancel} cancelada(s)/denegada(s) excluída(s)`:'')+(nEvento?` · ${nEvento} evento(s)`:'')+(nInut?` · ${nInut} inutilização(ões)`:'');
+  const nErro = nfeRows.filter(r=>r.erro).length;
+  document.getElementById('nfe-count').textContent = `${nfeRows.length} arquivo(s)`+(nCancel?` · ${nCancel} cancelada(s)/denegada(s) excluída(s)`:'')+(nEvento?` · ${nEvento} evento(s)`:'')+(nInut?` · ${nInut} inutilização(ões)`:'')+(nErro?` · ${nErro} com falha de leitura`:'');
+  const det = document.getElementById('nfe-detalhe');
+  if(det && (nErro>0 || ok.length===0) && nfeRows.length>0) det.open = true;
 }
 
 /* Eventos NFS-e Padrão Nacional (schema oficial ADN, Schemas/1.01/tiposEventos_v1.01.xsd) —
@@ -2980,6 +2989,12 @@ function extrairCompNfseABRASF(compNode, nomeArquivo, cnpjCliente){
 let nfseRows = [];
 async function processarNFSe(){
   const files = document.getElementById('file-nfse').files;
+  if(!files || !files.length){
+    const det = document.getElementById('nfse-detalhe');
+    if(det) det.open = true;
+    document.getElementById('nfse-tabela').innerHTML = '<tr><td colspan="6" style="color:var(--critical)">Nenhum arquivo selecionado — clique em "Escolher arquivos" e selecione o(s) XML ou .zip antes de clicar em "Processar NFS-e".</td></tr>';
+    return;
+  }
   const cnpjCliente = clienteCNPJ();
   const brutos = [];
   const chavesCanceladasPorEvento = new Set();
@@ -3085,7 +3100,11 @@ function renderNFSe(){
   document.getElementById('nfse-tot-iss').textContent = brl(ok.reduce((s,r)=>s+r.iss,0));
   const nCancel = nfseRows.filter(r=>r.cancelada).length;
   const nEvento = nfseRows.filter(r=>r.evento).length;
-  document.getElementById('nfse-count').textContent = `${nfseRows.length} arquivo(s)`+(nCancel?` · ${nCancel} cancelada(s) excluída(s)`:'')+(nEvento?` · ${nEvento} evento(s)`:'');
+  const nNaoRec = nfseRows.filter(r=>r.naoReconhecido).length;
+  const nErro = nfseRows.filter(r=>r.erro).length;
+  document.getElementById('nfse-count').textContent = `${nfseRows.length} arquivo(s)`+(nCancel?` · ${nCancel} cancelada(s) excluída(s)`:'')+(nEvento?` · ${nEvento} evento(s)`:'')+(nNaoRec?` · ${nNaoRec} não reconhecido(s)`:'')+(nErro?` · ${nErro} com falha de leitura`:'');
+  const det = document.getElementById('nfse-detalhe');
+  if(det && (nErro>0 || nNaoRec>0 || ok.length===0) && nfseRows.length>0) det.open = true;
 }
 
 let dreRows = [];
