@@ -3186,6 +3186,26 @@ function extrairCompNfseABRASF(compNode, nomeArquivo, cnpjCliente){
   };
 }
 
+/* NFS-e Padrão Nacional (schema DPS/NFSe da ADN) — vale tanto para o XML avulso (raiz infNFSe/DPS) quanto
+   para o mesmo conteúdo envelopado dentro de um <CompNfse> (alguns emissores municipais reaproveitam esse
+   elemento do ABRASF 2.04 como wrapper genérico da resposta, mesmo entregando o schema novo por dentro). */
+function extrairNFSePadraoNacional(scope, nomeArquivo, cnpjCliente){
+  const prest = scope.getElementsByTagName('prest')[0];
+  const toma = scope.getElementsByTagName('toma')[0];
+  const prestCNPJ = onlyDigits(tagText(prest,'CNPJ'));
+  const tomaCNPJ = onlyDigits(tagText(toma,'CNPJ'));
+  const vServ = tagFloat(scope,'vServ') || tagFloat(scope,'vServPrest');
+  const vISS = tagFloat(scope,'vISSQN');
+  const naoReconhecido = !vServ && !prest && !toma;
+  const infNFSe = scope.getElementsByTagName('infNFSe')[0];
+  const chave = infNFSe && infNFSe.getAttribute ? (infNFSe.getAttribute('Id')||'') : '';
+
+  let tipo = 'Indefinido';
+  if(cnpjCliente && prestCNPJ===cnpjCliente) tipo = 'Prestação';
+  else if(cnpjCliente && tomaCNPJ===cnpjCliente) tipo = 'Tomada';
+  return {arquivo:nomeArquivo, tipo, valor:vServ, iss:vISS, prest:prestCNPJ, toma:tomaCNPJ, naoReconhecido, chave};
+}
+
 let nfseRows = [];
 async function processarNFSe(){
   const files = arquivosCombinados('file-nfse','file-nfse-pasta');
@@ -3221,12 +3241,25 @@ async function processarNFSe(){
         continue;
       }
 
-      /* ABRASF 2.04 — nota(s): um arquivo pode trazer mais de um CompNfse (resposta de consulta em lote). */
+      /* Nota(s): um arquivo pode trazer mais de um CompNfse (resposta de consulta em lote). Atenção: alguns
+         emissores municipais (ex.: sistema usado em Ribeirão Preto/SP) embrulham a NFS-e Padrão Nacional
+         (NFSe/infNFSe) dentro do mesmo elemento <CompNfse> historicamente usado pelo ABRASF 2.04 — por isso
+         a presença de <CompNfse> sozinha NÃO basta para decidir o layout; é preciso olhar o conteúdo de cada
+         nó (InfNfse = ABRASF 2.04; infNFSe = Padrão Nacional envelopado). */
       const compNfseLista = doc.getElementsByTagName('CompNfse');
       if(compNfseLista.length){
         const multiplas = compNfseLista.length>1;
         for(let i=0;i<compNfseLista.length;i++){
-          const linha = extrairCompNfseABRASF(compNfseLista[i], multiplas ? `${item.name} — NFS-e nº ${tagText(compNfseLista[i],'Numero')||i+1}` : item.name, cnpjCliente);
+          const compNode = compNfseLista[i];
+          let linha;
+          if(compNode.getElementsByTagName('InfNfse').length){
+            linha = extrairCompNfseABRASF(compNode, multiplas ? `${item.name} — NFS-e nº ${tagText(compNode,'Numero')||i+1}` : item.name, cnpjCliente);
+          } else if(compNode.getElementsByTagName('infNFSe').length){
+            const numeroPN = tagText(compNode,'nNFSe');
+            linha = extrairNFSePadraoNacional(compNode, multiplas ? `${item.name} — NFS-e nº ${numeroPN||i+1}` : item.name, cnpjCliente);
+          } else {
+            linha = {arquivo: multiplas ? `${item.name} — item ${i+1}` : item.name, naoReconhecido:true};
+          }
           if(linha) brutos.push(linha);
         }
         continue;
@@ -3247,20 +3280,7 @@ async function processarNFSe(){
         continue;
       }
 
-      const prest = doc.getElementsByTagName('prest')[0];
-      const toma = doc.getElementsByTagName('toma')[0];
-      const prestCNPJ = onlyDigits(tagText(prest,'CNPJ'));
-      const tomaCNPJ = onlyDigits(tagText(toma,'CNPJ'));
-      const vServ = tagFloat(doc,'vServ') || tagFloat(doc,'vServPrest');
-      const vISS = tagFloat(doc,'vISSQN');
-      const naoReconhecido = !vServ && !prest && !toma;
-      const infNFSe = doc.getElementsByTagName('infNFSe')[0];
-      const chave = infNFSe && infNFSe.getAttribute ? (infNFSe.getAttribute('Id')||'') : '';
-
-      let tipo = 'Indefinido';
-      if(cnpjCliente && prestCNPJ===cnpjCliente) tipo = 'Prestação';
-      else if(cnpjCliente && tomaCNPJ===cnpjCliente) tipo = 'Tomada';
-      brutos.push({arquivo:item.name, tipo, valor:vServ, iss:vISS, prest:prestCNPJ, toma:tomaCNPJ, naoReconhecido, chave});
+      brutos.push(extrairNFSePadraoNacional(doc, item.name, cnpjCliente));
     }catch(e){ brutos.push({arquivo:item.name, erro:true}); }
   }
   nfseRows = brutos.map(r=>{
