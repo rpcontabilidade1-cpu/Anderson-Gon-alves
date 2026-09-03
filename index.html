@@ -382,7 +382,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           <h2>NFS-e Padrão Nacional — prestação e tomada de serviços</h2>
           <span class="pill accent" id="nfse-count">0 arquivo(s)</span>
         </div>
-        <p class="desc" style="margin-top:-4px;">Aceita o schema unificado (DPS/NFSe) adotado nacionalmente — em XML avulso ou em um ou mais arquivos .zip contendo os XML. NFS-e em layout municipal legado pode não ser reconhecida — o arquivo aparecerá marcado como "não reconhecido".</p>
+        <p class="desc" style="margin-top:-4px;">Aceita o schema unificado (DPS/NFSe) adotado nacionalmente e também o layout ABRASF 2.04 (municipal legado, ex.: Ribeirão Preto/SP — CompNfse/InfNfse) — em XML avulso ou em um ou mais arquivos .zip contendo os XML. Outros layouts municipais legados podem não ser reconhecidos — o arquivo aparecerá marcado como "não reconhecido".</p>
         <div class="btnrow" style="margin-top:10px;">
           <input type="file" id="file-nfse" multiple accept=".xml,.zip" style="max-width:360px;">
           <button class="btn primary" onclick="processarNFSe()">Processar NFS-e</button>
@@ -442,7 +442,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
         <div class="btnrow" style="margin-top:16px;">
           <button class="btn primary" onclick="aplicarImportacao()">Aplicar ao Comparativo de Regimes</button>
         </div>
-        <div class="note" style="margin-top:12px;"><b>NF-e — válida:</b> apenas <code>cStat</code> 100 (autorizada) e 150 (autorizada fora do prazo, mas válida) mantêm a nota nos totais. <b>NF-e — cancelada/denegada:</b> qualquer outro <code>cStat</code> do protocolo (101, 135, 151, 155, 301, 302 etc.) ou evento de cancelamento (tpEvento 110111/110112) vinculado pela chave no mesmo lote — a linha é riscada, marcada e excluída dos totais automaticamente. <b>NF-e — numeração inutilizada:</b> arquivo de Inutilização (<code>ProcInutNFe</code>/<code>retInutNFe</code>/<code>infInut</code>) é identificado e listado à parte (faixa de numeração, série, ano) — nunca corresponde a um documento fiscal emitido, então não entra nos totais nem é tratado como cancelamento. <i>Atenção: a leitura da inutilização segue a estrutura padrão do Manual de Orientação do Contribuinte da NF-e, mas — diferente do cancelamento, cujas tags foram conferidas contra o schema oficial — não foi validada aqui contra um XSD fornecido; se algum arquivo de inutilização não for reconhecido, envie o schema para conferência.</i> <b>Cancelamento — NFS-e Padrão Nacional:</b> detectado com base no Schema XSD oficial da ADN (fornecido pelo usuário, versão 1.01) — eventos <code>e101101</code>, <code>e105102</code>, <code>e105104</code>, <code>e305101</code> e <code>e305102</code> excluem a nota dos totais via <code>chNFSe</code>; os eventos <code>e101103</code> (solicitação de análise pendente) e <code>e105105</code> (cancelamento indeferido) são reconhecidos mas <b>não</b> excluem a nota, pois ela permanece válida. Operação não tributável que não seja cancelamento (ex.: transferência, devolução, simples remessa) ainda precisa ser removida manualmente do lote — o parser não julga a natureza da operação, só o status fiscal.</div>
+        <div class="note" style="margin-top:12px;"><b>NF-e — válida:</b> apenas <code>cStat</code> 100 (autorizada) e 150 (autorizada fora do prazo, mas válida) mantêm a nota nos totais. <b>NF-e — cancelada/denegada:</b> qualquer outro <code>cStat</code> do protocolo (101, 135, 151, 155, 301, 302 etc.) ou evento de cancelamento (tpEvento 110111/110112) vinculado pela chave no mesmo lote — a linha é riscada, marcada e excluída dos totais automaticamente. <b>NF-e — numeração inutilizada:</b> arquivo de Inutilização (<code>ProcInutNFe</code>/<code>retInutNFe</code>/<code>infInut</code>) é identificado e listado à parte (faixa de numeração, série, ano) — nunca corresponde a um documento fiscal emitido, então não entra nos totais nem é tratado como cancelamento. <i>Atenção: a leitura da inutilização segue a estrutura padrão do Manual de Orientação do Contribuinte da NF-e, mas — diferente do cancelamento, cujas tags foram conferidas contra o schema oficial — não foi validada aqui contra um XSD fornecido; se algum arquivo de inutilização não for reconhecido, envie o schema para conferência.</i> <b>Cancelamento — NFS-e Padrão Nacional:</b> detectado com base no Schema XSD oficial da ADN (fornecido pelo usuário, versão 1.01) — eventos <code>e101101</code>, <code>e105102</code>, <code>e105104</code>, <code>e305101</code> e <code>e305102</code> excluem a nota dos totais via <code>chNFSe</code>; os eventos <code>e101103</code> (solicitação de análise pendente) e <code>e105105</code> (cancelamento indeferido) são reconhecidos mas <b>não</b> excluem a nota, pois ela permanece válida. Operação não tributável que não seja cancelamento (ex.: transferência, devolução, simples remessa) ainda precisa ser removida manualmente do lote — o parser não julga a natureza da operação, só o status fiscal. <b>Cancelamento — NFS-e ABRASF 2.04 (municipal legado, ex.: Ribeirão Preto/SP):</b> detectado com base no Schema XSD oficial fornecido pelo usuário (schema_v204.xsd) — a nota é excluída dos totais quando a própria consulta traz o elemento <code>NfseCancelamento</code> junto do <code>Nfse</code> (dentro do mesmo <code>CompNfse</code>), quando traz <code>NfseSubstituicao</code> (nota substituída por outra, para evitar duplicidade) ou quando um arquivo avulso de pedido/confirmação de cancelamento (<code>InfPedidoCancelamento</code>) referencia a mesma nota (nº + CNPJ do prestador) no lote importado.</div>
       </div>
     </section>
 
@@ -2925,6 +2925,44 @@ const NFSE_EVENTOS_INFORMATIVOS = {
   e101103:'Solicitação de Análise Fiscal para Cancelamento — pendente, NFS-e ainda válida até deferimento',
   e105105:'Cancelamento Indeferido por Análise Fiscal — pedido negado, NFS-e permanece válida'
 };
+
+/* Layout ABRASF 2.04 (municipal legado — ex.: Ribeirão Preto/SP, sistema Nota Control) — schema oficial
+   fornecido pelo usuário (schema_v204.xsd). Estrutura: CompNfse > Nfse > InfNfse (+ NfseCancelamento e/ou
+   NfseSubstituicao como IRMÃOS de Nfse dentro do mesmo CompNfse quando a nota consultada está cancelada
+   ou foi substituída). Um único arquivo pode trazer mais de um CompNfse (ex.: resposta de consulta em
+   lote/por período), por isso cada CompNfse do arquivo vira uma linha própria. */
+function extrairCompNfseABRASF(compNode, nomeArquivo, cnpjCliente){
+  const infNfseNode = compNode.getElementsByTagName('InfNfse')[0];
+  if(!infNfseNode) return null;
+  const numero = tagText(infNfseNode,'Numero');
+  const valoresNfse = infNfseNode.getElementsByTagName('ValoresNfse')[0];
+  const declServ = infNfseNode.getElementsByTagName('InfDeclaracaoPrestacaoServico')[0];
+  const servico = declServ ? declServ.getElementsByTagName('Servico')[0] : null;
+  const valoresServico = servico ? servico.getElementsByTagName('Valores')[0] : null;
+  const valor = tagFloat(valoresServico,'ValorServicos') || tagFloat(valoresNfse,'BaseCalculo');
+  const iss = tagFloat(valoresNfse,'ValorIss') || tagFloat(valoresServico,'ValorIss');
+  const prestadorNode = declServ ? declServ.getElementsByTagName('Prestador')[0] : null;
+  const tomadorNode = declServ ? declServ.getElementsByTagName('TomadorServico')[0] : null;
+  const tomaIdent = tomadorNode ? tomadorNode.getElementsByTagName('IdentificacaoTomador')[0] : null;
+  const prestCpfCnpj = prestadorNode ? prestadorNode.getElementsByTagName('CpfCnpj')[0] : null;
+  const tomaCpfCnpj = tomaIdent ? tomaIdent.getElementsByTagName('CpfCnpj')[0] : null;
+  const prestCNPJ = onlyDigits(tagText(prestCpfCnpj,'Cnpj') || tagText(prestCpfCnpj,'Cpf'));
+  const tomaCNPJ = onlyDigits(tagText(tomaCpfCnpj,'Cnpj') || tagText(tomaCpfCnpj,'Cpf'));
+
+  const cancelInline = compNode.getElementsByTagName('NfseCancelamento').length > 0;
+  const substNode = compNode.getElementsByTagName('NfseSubstituicao')[0];
+  const numeroSubstituidora = substNode ? tagText(substNode,'NfseSubstituidora') : '';
+
+  let tipo = 'Indefinido';
+  if(cnpjCliente && prestCNPJ===cnpjCliente) tipo = 'Prestação';
+  else if(cnpjCliente && tomaCNPJ===cnpjCliente) tipo = 'Tomada';
+
+  return {
+    arquivo: nomeArquivo, tipo, valor, iss, prest:prestCNPJ, toma:tomaCNPJ, naoReconhecido:false,
+    chave: `${numero}|${prestCNPJ}`, abrasf:true, cancelInline, substituida: !!substNode, numeroSubstituidora
+  };
+}
+
 let nfseRows = [];
 async function processarNFSe(){
   const files = document.getElementById('file-nfse').files;
@@ -2954,6 +2992,32 @@ async function processarNFSe(){
         continue;
       }
 
+      /* ABRASF 2.04 — nota(s): um arquivo pode trazer mais de um CompNfse (resposta de consulta em lote). */
+      const compNfseLista = doc.getElementsByTagName('CompNfse');
+      if(compNfseLista.length){
+        const multiplas = compNfseLista.length>1;
+        for(let i=0;i<compNfseLista.length;i++){
+          const linha = extrairCompNfseABRASF(compNfseLista[i], multiplas ? `${item.name} — NFS-e nº ${tagText(compNfseLista[i],'Numero')||i+1}` : item.name, cnpjCliente);
+          if(linha) brutos.push(linha);
+        }
+        continue;
+      }
+
+      /* ABRASF 2.04 — pedido/confirmação de cancelamento avulso (arquivo próprio, fora da consulta da nota). */
+      const infPedCancelLista = doc.getElementsByTagName('InfPedidoCancelamento');
+      if(infPedCancelLista.length){
+        for(let i=0;i<infPedCancelLista.length;i++){
+          const identNfse = infPedCancelLista[i].getElementsByTagName('IdentificacaoNfse')[0];
+          const numero = tagText(identNfse,'Numero');
+          const cpfCnpjNode = identNfse ? identNfse.getElementsByTagName('CpfCnpj')[0] : null;
+          const cnpj = onlyDigits(tagText(cpfCnpjNode,'Cnpj') || tagText(cpfCnpjNode,'Cpf'));
+          const chaveCancel = `${numero}|${cnpj}`;
+          if(numero && cnpj) chavesCanceladasPorEvento.add(chaveCancel);
+          brutos.push({arquivo:item.name, evento:true, tipoEvento:'Pedido/confirmação de cancelamento de NFS-e (ABRASF 2.04)', chave:chaveCancel, cancelaOrigem:true});
+        }
+        continue;
+      }
+
       const prest = doc.getElementsByTagName('prest')[0];
       const toma = doc.getElementsByTagName('toma')[0];
       const prestCNPJ = onlyDigits(tagText(prest,'CNPJ'));
@@ -2973,8 +3037,12 @@ async function processarNFSe(){
   nfseRows = brutos.map(r=>{
     if(r.erro || r.evento) return r;
     let cancelada=false, motivoCancel='';
-    if(r.chave && chavesCanceladasPorEvento.has(r.chave)){
-      cancelada = true; motivoCancel = 'Cancelada — evento de cancelamento (chNFSe correspondente) presente no lote importado';
+    if(r.cancelInline){
+      cancelada = true; motivoCancel = 'Cancelada — elemento NfseCancelamento presente na própria consulta da nota (ABRASF 2.04)';
+    } else if(r.substituida){
+      cancelada = true; motivoCancel = `Substituída pela NFS-e nº ${r.numeroSubstituidora||'?'} (elemento NfseSubstituicao, ABRASF 2.04) — não contabilizada aqui para evitar duplicidade com a nota substituta`;
+    } else if(r.chave && chavesCanceladasPorEvento.has(r.chave)){
+      cancelada = true; motivoCancel = 'Cancelada — evento/pedido de cancelamento correspondente presente no lote importado';
     } else if(/cancel/i.test(r.arquivo)){
       cancelada = true; motivoCancel = 'Nome do arquivo indica cancelamento (sinal fraco — confirme visualmente; não houve evento de cancelamento correspondente no lote)';
     }
@@ -2990,7 +3058,7 @@ function renderNFSe(){
       const cor = r.cancelaOrigem ? 'var(--critical)' : 'var(--warn)';
       return `<tr><td>${r.arquivo}</td><td colspan="5" style="color:${cor}">Evento — ${r.tipoEvento}${r.chave?` (chave …${r.chave.slice(-8)})`:''} — não contabilizado</td></tr>`;
     }
-    if(r.naoReconhecido) return `<tr><td>${r.arquivo}</td><td colspan="5" style="color:var(--warn)">Não reconhecido — não corresponde ao schema padrão nacional (DPS/NFSe). Provável layout municipal legado.</td></tr>`;
+    if(r.naoReconhecido) return `<tr><td>${r.arquivo}</td><td colspan="5" style="color:var(--warn)">Não reconhecido — não corresponde ao schema padrão nacional (DPS/NFSe) nem ao ABRASF 2.04 (CompNfse/InfNfse). Provável outro layout municipal legado.</td></tr>`;
     const pillClasse = r.cancelada ? 'crit' : (r.tipo==='Prestação'?'good':(r.tipo==='Tomada'?'accent':'warn'));
     const tipoLabel = r.cancelada ? 'Cancelada' : r.tipo;
     const rowStyle = r.cancelada ? ' style="opacity:.55;"' : '';
