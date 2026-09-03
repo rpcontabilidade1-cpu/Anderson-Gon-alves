@@ -368,13 +368,21 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           <input type="file" id="file-nfe" multiple accept=".xml,.zip" style="max-width:360px;">
           <button class="btn primary" onclick="processarNFe()">Processar NF-e</button>
         </div>
-        <div class="table-wrap" style="margin-top:14px;">
-          <table>
-            <thead><tr><th>Arquivo</th><th>Tipo</th><th>CFOP</th><th class="num">Valor (R$)</th><th class="num">ICMS</th><th class="num">PIS</th><th class="num">COFINS</th></tr></thead>
-            <tbody id="nfe-tabela"></tbody>
-            <tfoot><tr><td colspan="3">Totais</td><td class="num" id="nfe-tot-valor">—</td><td class="num" id="nfe-tot-icms">—</td><td class="num" id="nfe-tot-pis">—</td><td class="num" id="nfe-tot-cofins">—</td></tr></tfoot>
-          </table>
+        <div class="kpi-row" style="margin-top:14px;">
+          <div class="kpi"><div class="l">Total (líquido de canceladas/denegadas)</div><div class="v" id="nfe-tot-valor">—</div></div>
+          <div class="kpi"><div class="l">ICMS</div><div class="v" id="nfe-tot-icms">—</div></div>
+          <div class="kpi"><div class="l">PIS</div><div class="v" id="nfe-tot-pis">—</div></div>
+          <div class="kpi"><div class="l">COFINS</div><div class="v" id="nfe-tot-cofins">—</div></div>
         </div>
+        <details style="margin-top:12px;">
+          <summary style="cursor:pointer;color:var(--text-muted);font-size:12.5px;">Ver detalhamento por nota importada</summary>
+          <div class="table-wrap" style="margin-top:10px;">
+            <table>
+              <thead><tr><th>Arquivo</th><th>Tipo</th><th>CFOP</th><th class="num">Valor (R$)</th><th class="num">ICMS</th><th class="num">PIS</th><th class="num">COFINS</th></tr></thead>
+              <tbody id="nfe-tabela"></tbody>
+            </table>
+          </div>
+        </details>
       </div>
 
       <div class="card">
@@ -387,13 +395,19 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           <input type="file" id="file-nfse" multiple accept=".xml,.zip" style="max-width:360px;">
           <button class="btn primary" onclick="processarNFSe()">Processar NFS-e</button>
         </div>
-        <div class="table-wrap" style="margin-top:14px;">
-          <table>
-            <thead><tr><th>Arquivo</th><th>Tipo</th><th class="num">Valor serviço (R$)</th><th class="num">ISS</th><th>Prestador</th><th>Tomador</th></tr></thead>
-            <tbody id="nfse-tabela"></tbody>
-            <tfoot><tr><td colspan="2">Totais</td><td class="num" id="nfse-tot-valor">—</td><td class="num" id="nfse-tot-iss">—</td><td colspan="2"></td></tr></tfoot>
-          </table>
+        <div class="kpi-row" style="margin-top:14px;">
+          <div class="kpi"><div class="l">Total serviço (líquido de canceladas)</div><div class="v" id="nfse-tot-valor">—</div></div>
+          <div class="kpi"><div class="l">ISS</div><div class="v" id="nfse-tot-iss">—</div></div>
         </div>
+        <details style="margin-top:12px;">
+          <summary style="cursor:pointer;color:var(--text-muted);font-size:12.5px;">Ver detalhamento por nota importada</summary>
+          <div class="table-wrap" style="margin-top:10px;">
+            <table>
+              <thead><tr><th>Arquivo</th><th>Tipo</th><th class="num">Valor serviço (R$)</th><th class="num">ISS</th><th>Prestador</th><th>Tomador</th></tr></thead>
+              <tbody id="nfse-tabela"></tbody>
+            </table>
+          </div>
+        </details>
       </div>
 
       <div class="card">
@@ -3169,7 +3183,9 @@ const DRE_CONCEITOS = [
   ['folha','Folha de pagamento']
 ];
 const DRE_TEMPLATE_REGEX = {
-  receita: /receita\s*(bruta|operacional\s*bruta)|faturamento/i,
+  /* Não inclui variantes de "receita líquida" de propósito: usar o valor líquido (já deduzido de
+     Simples Nacional/impostos) como se fosse a receita bruta subestimaria a base tributável. */
+  receita: /faturamento|receitas?\s*(bruta|operacional\s*bruta|de\s*(servi[çc]os|vendas|mercadorias)|com\s*servi[çc]os|total)\b/i,
   cmv: /\bcmv\b|custo\s*(das?|dos?)?\s*(mercadorias|produtos|servi[çc]os)/i,
   energia: /energia\s*el[ée]trica/i,
   aluguel: /aluguel|condom[íi]nio/i,
@@ -3191,6 +3207,17 @@ function detectarTemplateDRE(){
   }
   return matches;
 }
+function melhorColunaValoresDRE(){
+  if(!dreRows.length) return 0;
+  const nCols = Math.max(dreRows.reduce((m,r)=>Math.max(m,r.length),0), 1);
+  let melhor = 0, melhorCount = -1;
+  for(let c=0;c<nCols;c++){
+    let count = 0;
+    for(const row of dreRows){ if(parseDRENumero(row[c])!==0) count++; }
+    if(count>melhorCount){ melhorCount = count; melhor = c; }
+  }
+  return melhor;
+}
 function renderDREMapeamento(){
   const nCols = Math.max(dreRows.reduce((m,r)=>Math.max(m,r.length),0), 1);
   const colOpts = Array.from({length:nCols}, (_,i)=>`<option value="${i}">Coluna ${String.fromCharCode(65+i)}</option>`).join('');
@@ -3203,23 +3230,30 @@ function renderDREMapeamento(){
   const deteccao = dreModo==='auto' ? detectarTemplateDRE() : {};
   const html = `
     <div class="grid3" style="margin-bottom:10px;">
-      <div class="field"><label>Coluna com os valores a usar</label><select id="dre-col">${colOpts}</select></div>
+      <div class="field"><label>Coluna com os valores a usar</label><select id="dre-col" autocomplete="off" onchange="atualizarTodosValoresDRE()">${colOpts}</select></div>
     </div>
     <div class="grid3">
       ${DRE_CONCEITOS.map(([k,label])=>{
         const idx = deteccao[k];
         const badge = dreModo==='auto' ? (idx>=0 ? '<span class="pill good" style="margin-left:6px;">detectado</span>' : '<span class="pill warn" style="margin-left:6px;">não detectado</span>') : '';
-        return `<div class="field"><label>${label}${badge}</label><select id="dre-row-${k}">${rowOpts}</select></div>`;
+        return `<div class="field"><label>${label}${badge}</label><select id="dre-row-${k}" autocomplete="off" onchange="atualizarValorDRE('${k}')">${rowOpts}</select><div class="d" id="dre-valor-${k}" style="margin-top:4px;">—</div></div>`;
       }).join('')}
     </div>`;
   document.getElementById('dre-mapeamento').innerHTML = html;
-  if(dreModo==='auto'){
-    for(const k in deteccao){
-      const idx = deteccao[k];
-      const el = document.getElementById('dre-row-'+k);
-      if(el && idx>=0) el.value = String(idx);
-    }
+  /* A coluna com os valores raramente é a primeira (a primeira costuma ser o rótulo da linha, tanto
+     no texto colado quanto na maioria das planilhas) — em vez de assumir "Coluna A", escolhe por
+     padrão a coluna com mais células numéricas não-zero entre as linhas lidas. */
+  const colSel = document.getElementById('dre-col');
+  if(colSel) colSel.value = String(melhorColunaValoresDRE());
+  /* Sempre define o valor explicitamente (inclusive "-1: não identificado") — nunca deixa o <select>
+     no valor padrão do navegador, que em alguns casos é restaurado pelo autocomplete do Chrome com a
+     última seleção manual feita nessa mesma sessão, mesmo o elemento tendo sido recriado do zero. */
+  for(const [k] of DRE_CONCEITOS){
+    const idx = dreModo==='auto' ? deteccao[k] : undefined;
+    const el = document.getElementById('dre-row-'+k);
+    if(el) el.value = (idx!==undefined && idx>=0) ? String(idx) : '-1';
   }
+  atualizarTodosValoresDRE();
 }
 function valorDREMapeado(chave){
   const rowSel = document.getElementById('dre-row-'+chave);
@@ -3229,6 +3263,15 @@ function valorDREMapeado(chave){
   const colIdx = parseInt(colSel.value,10);
   if(rowIdx<0 || !dreRows[rowIdx]) return null;
   return parseDRENumero(dreRows[rowIdx][colIdx]);
+}
+function atualizarValorDRE(chave){
+  const el = document.getElementById('dre-valor-'+chave);
+  if(!el) return;
+  const v = valorDREMapeado(chave);
+  el.textContent = v===null ? '— nenhuma linha selecionada' : `= ${brl(v)}`;
+}
+function atualizarTodosValoresDRE(){
+  DRE_CONCEITOS.forEach(([k])=>atualizarValorDRE(k));
 }
 
 function atualizarResumoImportacao(){
