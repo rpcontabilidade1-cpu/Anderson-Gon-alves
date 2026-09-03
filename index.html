@@ -649,6 +649,21 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
               <option value="V">Anexo V — Serviços (fator R &lt; 28%)</option>
             </select>
           </div>
+          <div class="field">
+            <label>Regra especial de ISS no Simples (Anexo III/V)</label>
+            <select id="regra-iss">
+              <option value="auto" selected>Detectar automaticamente pelo CNAE</option>
+              <option value="nenhuma">Nenhuma — ISS integra o DAS normalmente</option>
+              <option value="contabilidade">Contabilidade — ISS Fixo (excluir do DAS)</option>
+              <option value="locacao">Locação de bens móveis — ISS não incide (excluir do DAS)</option>
+            </select>
+            <div class="hint" id="regra-iss-hint">—</div>
+          </div>
+          <div class="field" id="wrap-pct-iss-partilha" style="display:none;">
+            <label>% do ISS na partilha da faixa (Res. CGSN 140/2018)</label>
+            <input type="number" id="pct-iss-partilha" value="33.5" min="0" max="100" step="0.1">
+            <div class="hint">Sugerido pela faixa/Anexo atual a partir de fontes secundárias (acesso à tabela oficial em PDF indisponível nesta sessão) — <b>confira na Resolução CGSN 140/2018 vigente</b> antes de usar em uma apuração real e ajuste aqui se divergir. O valor excluído do DAS fica limitado a 5 pontos percentuais da alíquota efetiva (art. 18, §18, LC 123/2006).</div>
+          </div>
         </div>
 
         <div id="wrap-anexo-misto" style="display:none;">
@@ -994,6 +1009,68 @@ function aliqEfetivaSimples(rbt12, anexo){
   const efetiva = rbt12>0 ? ((rbt12*aliqNom - pd)/rbt12) : aliqNom;
   return Math.max(efetiva, 0);
 }
+/* Percentual do ISS na partilha do Simples Nacional por faixa de RBT12 (Resolução CGSN 140/2018, Anexos
+   III e V) — usado para excluir a parcela de ISS da alíquota efetiva do DAS nos dois casos em que a lei
+   determina que o ISS NÃO é recolhido junto com o Simples: (1) escritórios de contabilidade que recolhem
+   ISS Fixo ao Município (LC 123/2006, art. 18, §22-A); e (2) locação de bens móveis, sobre a qual o ISS não
+   incide (Súmula Vinculante 31, STF; LC 123/2006, art. 18, §4º-V). Valores obtidos de fontes secundárias
+   nesta sessão — o acesso à tabela oficial em PDF (normas.receita.fazenda.gov.br) ficou bloqueado — por
+   isso o campo "% do ISS na partilha" na tela permanece editável e deve ser conferido pelo contador contra
+   a resolução vigente antes de uso em uma apuração real. A faixa 6 do Anexo III não pôde ser confirmada e
+   repete o valor da faixa 5 como referência aproximada. */
+const ISS_PARTILHA_ANEXO = {
+  III: [33.50, 32.00, 32.50, 32.50, 33.50, 33.50],
+  V:   [14.00, 17.00, 20.00, 22.50, 23.50, 23.50]
+};
+function faixaIndexSimples(rbt12, anexo){
+  const tab = SIMPLES[anexo];
+  for(let i=0;i<tab.length;i++){ if(rbt12 <= tab[i][0]) return i; }
+  return tab.length-1;
+}
+function sugerirPctIssPartilha(rbt12, anexo){
+  const tabela = ISS_PARTILHA_ANEXO[anexo];
+  return tabela ? tabela[faixaIndexSimples(rbt12, anexo)] : null;
+}
+function classeCNAE(valor){
+  const m = (valor||'').match(/^(\d{4}-\d)/);
+  return m ? m[1] : '';
+}
+/* CNAE 6920-6 = "Atividades de contabilidade, consultoria e auditoria contábil e tributária" (subclasses
+   6920-6/01 e 6920-6/02); Divisão 77 = "Aluguéis não-imobiliários e gestão de ativos intangíveis não
+   financeiros" (locação de bens móveis, CNAE 2.3/CONCLA). */
+function detectarRegraISSPorCNAE(valor){
+  const v = (valor||'').trim();
+  if(classeCNAE(v) === '6920-6') return 'contabilidade';
+  if(/^77\d{2}-\d/.test(v)) return 'locacao';
+  return 'nenhuma';
+}
+function atualizarRegraISS(){
+  const sel = document.getElementById('regra-iss').value;
+  const regraEfetiva = sel==='auto' ? detectarRegraISSPorCNAE(document.getElementById('cli-cnae').value) : sel;
+  const hint = document.getElementById('regra-iss-hint');
+  if(sel==='auto'){
+    hint.textContent = regraEfetiva==='nenhuma'
+      ? (document.getElementById('cli-cnae').value ? 'CNAE informado não corresponde a contabilidade nem a locação de bens móveis — ISS não excluído.' : 'Sem CNAE informado na Visão Geral — selecione manualmente se aplicável.')
+      : `Detectado pelo CNAE: ${regraEfetiva==='contabilidade' ? 'contabilidade (ISS Fixo)' : 'locação de bens móveis (ISS não incide)'}.`;
+  } else {
+    hint.textContent = 'Regra selecionada manualmente — ignora o CNAE informado.';
+  }
+  const anexo = document.getElementById('anexo').value;
+  const aplicavel = (regraEfetiva==='contabilidade' || regraEfetiva==='locacao') && (anexo==='III' || anexo==='V');
+  document.getElementById('wrap-pct-iss-partilha').style.display = aplicavel ? '' : 'none';
+  if(aplicavel){
+    const rbt12 = parseFloat(document.getElementById('rbt12').value)||0;
+    const sugestao = sugerirPctIssPartilha(rbt12, anexo);
+    if(sugestao!=null) document.getElementById('pct-iss-partilha').value = sugestao;
+  }
+  return regraEfetiva;
+}
+document.getElementById('regra-iss').addEventListener('change', ()=>{ atualizarRegraISS(); calcular(); });
+document.getElementById('cli-cnae').addEventListener('input', ()=>{ if(document.getElementById('regra-iss').value==='auto'){ atualizarRegraISS(); calcular(); } });
+document.getElementById('anexo').addEventListener('change', ()=>{ atualizarRegraISS(); calcular(); });
+document.getElementById('rbt12').addEventListener('input', ()=>{ atualizarRegraISS(); calcular(); });
+document.getElementById('pct-iss-partilha').addEventListener('input', calcular);
+
 /* Regime único ou misto (receita segregada em 2 Anexos, LC 123/2006 art. 18, §4º) — retorna {aliqEf, totalSU} */
 function simplesUnicoOuMisto(fat, rbt12){
   const misto = document.getElementById('anexo-modo').value==='misto';
@@ -1105,11 +1182,26 @@ function calcular(){
     memSU.push(linhaMemoria('DAS total (regime misto) = soma das parcelas por Anexo', totalSU));
     memSU.push(linhaTexto('Alíquota efetiva combinada (DAS total ÷ faturamento) — usada como referência nos demais cálculos', pct(aliqEf*100)));
   } else {
-    aliqEf = aliqEfetivaSimples(rbt12, anexo);
+    const aliqEfCheia = aliqEfetivaSimples(rbt12, anexo);
+    const regraISSSel = document.getElementById('regra-iss').value;
+    const regraISSAtiva = regraISSSel==='auto' ? detectarRegraISSPorCNAE(document.getElementById('cli-cnae').value) : regraISSSel;
+    const issExclusaoAplicavel = (regraISSAtiva==='contabilidade' || regraISSAtiva==='locacao') && (anexo==='III' || anexo==='V');
+    const pctIssPartilha = issExclusaoAplicavel ? (parseFloat(document.getElementById('pct-iss-partilha').value)||0)/100 : 0;
+    const issExcluidoPct = issExclusaoAplicavel ? Math.min(aliqEfCheia*pctIssPartilha, 0.05) : 0;
+    aliqEf = Math.max(aliqEfCheia - issExcluidoPct, 0);
     totalSU = fat*aliqEf;
     memSU.push(linhaMemoria(`RBT12 informado — Anexo ${anexo}`, rbt12));
-    memSU.push(linhaTexto('Alíquota efetiva = (RBT12×Alíq.nominal − Parcela a deduzir) ÷ RBT12', pct(aliqEf*100)));
-    memSU.push(linhaMemoria('DAS devido (Faturamento × Alíq. efetiva) — inclui IRPJ/CSLL/CPP/PIS/COFINS/ICMS-ISS embutidos', totalSU));
+    memSU.push(linhaTexto('Alíquota efetiva cheia = (RBT12×Alíq.nominal − Parcela a deduzir) ÷ RBT12', pct(aliqEfCheia*100)));
+    if(issExcluidoPct>0){
+      const baseLegal = regraISSAtiva==='contabilidade'
+        ? 'contabilidade com ISS Fixo — LC 123/2006, art. 18, §22-A (ISS recolhido à parte, em valor fixo mensal ao Município)'
+        : 'locação de bens móveis — ISS não incide (Súmula Vinculante 31, STF; LC 123/2006, art. 18, §4º-V)';
+      memSU.push(linhaTexto(`ISS excluído da alíquota (${baseLegal})`, pct(issExcluidoPct*100)));
+      memSU.push(linhaTexto('Alíquota efetiva sem ISS — usada no DAS', pct(aliqEf*100)));
+      memSU.push(linhaMemoria('DAS devido sem ISS (Faturamento × Alíq. efetiva sem ISS) — ISS recolhido à parte, não incluído aqui', totalSU));
+    } else {
+      memSU.push(linhaMemoria('DAS devido (Faturamento × Alíq. efetiva) — inclui IRPJ/CSLL/CPP/PIS/COFINS/ICMS-ISS embutidos', totalSU));
+    }
   }
 
   /* ---- Simples Nacional — Regime Híbrido (LC 214/2025, art. 41, §3º) ---- */
@@ -3837,6 +3929,7 @@ function aplicarImportacao(){
 }
 
 /* ---------- init ---------- */
+atualizarRegraISS();
 calcular();
 calcularPreco();
 </script>
