@@ -402,7 +402,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
         <div class="btnrow" style="margin-top:10px;">
           <input type="file" id="file-nfe" multiple accept=".xml,.zip" style="max-width:360px;">
           <button class="btn primary" onclick="processarNFe()">Processar NF-e</button>
-          <button class="btn" style="color:var(--critical);" onclick="limparNFe()">Limpar importados</button>
+          <button class="btn" style="color:var(--critical);" onclick="confirmarAcao(this,'Clique de novo p/ confirmar',limparNFe)">Limpar importados</button>
         </div>
         <div class="kpi-row" style="margin-top:14px;">
           <div class="kpi"><div class="l">Total (líquido de canceladas/denegadas)</div><div class="v" id="nfe-tot-valor">—</div></div>
@@ -430,7 +430,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
         <div class="btnrow" style="margin-top:10px;">
           <input type="file" id="file-nfse" multiple accept=".xml,.zip" style="max-width:360px;">
           <button class="btn primary" onclick="processarNFSe()">Processar NFS-e</button>
-          <button class="btn" style="color:var(--critical);" onclick="limparNFSe()">Limpar importados</button>
+          <button class="btn" style="color:var(--critical);" onclick="confirmarAcao(this,'Clique de novo p/ confirmar',limparNFSe)">Limpar importados</button>
         </div>
         <div class="kpi-row" style="margin-top:14px;">
           <div class="kpi"><div class="l">Total serviço (líquido de canceladas)</div><div class="v" id="nfse-tot-valor">—</div></div>
@@ -468,7 +468,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
         </div>
         <div class="btnrow" style="margin-top:10px;">
           <button class="btn primary" onclick="processarPGDASD()">Processar texto do PGDAS-D</button>
-          <button class="btn" style="color:var(--critical);" onclick="limparPGDASD()">Limpar importados</button>
+          <button class="btn" style="color:var(--critical);" onclick="confirmarAcao(this,'Clique de novo p/ confirmar',limparPGDASD)">Limpar importados</button>
         </div>
         <div class="note" id="pgdasd-status" style="margin-top:12px; display:none;"></div>
         <div class="grid2" style="margin-top:14px;">
@@ -517,7 +517,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
         <div class="btnrow" style="margin-top:10px;">
           <button class="btn primary" onclick="lerDRE()">Ler planilha</button>
           <button class="btn primary" onclick="lerDREColada()">Processar texto colado</button>
-          <button class="btn" style="color:var(--critical);" onclick="limparDRE()">Limpar importados</button>
+          <button class="btn" style="color:var(--critical);" onclick="confirmarAcao(this,'Clique de novo p/ confirmar',limparDRE)">Limpar importados</button>
           <span class="segmented" style="margin-left:auto;">
             <button type="button" class="active" id="dre-modo-auto" onclick="setModoDRE('auto')">Detecção automática</button>
             <button type="button" id="dre-modo-manual" onclick="setModoDRE('manual')">Mapeamento manual</button>
@@ -3649,23 +3649,51 @@ function atualizarTodosValoresDRE(){
   DRE_CONCEITOS.forEach(([k])=>atualizarValorDRE(k));
 }
 
-/* ---------- Limpar arquivos importados — um botão por card, cada um mexe só no que já é seu ---------- */
+/* ---------- Limpar arquivos importados — um botão por card, cada um mexe só no que já é seu ----------
+   Sem window.confirm(): este artifact roda num iframe restrito onde o navegador pode bloquear/rejeitar
+   caixas de diálogo nativas (mesma razão por que window.print() já tem fallback neste arquivo) — um
+   confirm() bloqueado retorna falso silenciosamente e o botão parece simplesmente não funcionar.
+   Confirmação em duas etapas, só com DOM: primeiro clique arma (texto/cor mudam por 3s), segundo
+   clique dentro da janela executa; sem segundo clique, desarma sozinho. */
+function confirmarAcao(btn, textoConfirmar, acao){
+  if(btn.dataset.armado==='1'){
+    clearTimeout(Number(btn.dataset.timeoutId));
+    delete btn.dataset.armado;
+    btn.textContent = btn.dataset.textoOriginal;
+    btn.style.background = '';
+    btn.style.borderColor = '';
+    btn.style.color = 'var(--critical)';
+    acao();
+  } else {
+    btn.dataset.textoOriginal = btn.textContent;
+    btn.dataset.armado = '1';
+    btn.textContent = textoConfirmar;
+    btn.style.background = 'var(--critical)';
+    btn.style.borderColor = 'var(--critical)';
+    btn.style.color = '#fff';
+    const timeoutId = setTimeout(()=>{
+      delete btn.dataset.armado;
+      btn.textContent = btn.dataset.textoOriginal;
+      btn.style.background = '';
+      btn.style.borderColor = '';
+      btn.style.color = 'var(--critical)';
+    }, 3000);
+    btn.dataset.timeoutId = String(timeoutId);
+  }
+}
 function limparNFe(){
-  if(!confirm('Remover todas as NF-e importadas nesta sessão? Os totais e o detalhamento voltam a zero.')) return;
   document.getElementById('file-nfe').value = '';
   nfeRows = [];
   renderNFe();
   atualizarResumoImportacao();
 }
 function limparNFSe(){
-  if(!confirm('Remover todas as NFS-e importadas nesta sessão? Os totais e o detalhamento voltam a zero.')) return;
   document.getElementById('file-nfse').value = '';
   nfseRows = [];
   renderNFSe();
   atualizarResumoImportacao();
 }
 function limparDRE(){
-  if(!confirm('Remover a DRE importada (planilha e/ou texto colado) nesta sessão?')) return;
   document.getElementById('file-dre').value = '';
   document.getElementById('dre-pdf-paste').value = '';
   dreRows = [];
@@ -3674,7 +3702,6 @@ function limparDRE(){
   atualizarResumoImportacao();
 }
 function limparPGDASD(){
-  if(!confirm('Remover os dados do PGDAS-D identificados nesta sessão (PDF, texto colado e valores extraídos)?')) return;
   document.getElementById('pgdasd-file').value = '';
   document.getElementById('pgdasd-paste').value = '';
   document.getElementById('pgdasd-faturamento').value = '';
