@@ -398,12 +398,16 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           <h2>NF-e — entrada e saída (modelo 55)</h2>
           <span class="pill accent" id="nfe-count">0 arquivo(s)</span>
         </div>
-        <p class="desc" style="margin-top:-4px;">Selecione um ou vários XML de NF-e — ou um ou mais arquivos .zip contendo os XML (todo .xml dentro do zip, em qualquer subpasta, é lido automaticamente). A classificação entrada/saída usa o CFOP do item e, quando disponível, o CNPJ do cliente informado na Visão Geral.</p>
-        <div class="btnrow" style="margin-top:10px;">
-          <input type="file" id="file-nfe" multiple accept=".xml,.zip" style="max-width:360px;">
+        <p class="desc" style="margin-top:-4px;">Selecione um ou vários XML de NF-e, uma pasta inteira de XML, ou um ou mais arquivos .zip contendo os XML (todo .xml dentro do zip, em qualquer subpasta, é lido automaticamente). A classificação entrada/saída usa o CFOP do item e, quando disponível, o CNPJ do cliente informado na Visão Geral.</p>
+        <div class="btnrow" style="margin-top:10px; flex-wrap:wrap;">
+          <input type="file" id="file-nfe" multiple accept=".xml,.zip" style="max-width:280px;">
+          <label class="btn" style="cursor:pointer;">Selecionar pasta
+            <input type="file" id="file-nfe-pasta" webkitdirectory multiple style="display:none;">
+          </label>
           <button class="btn primary" onclick="processarNFe()">Processar NF-e</button>
           <button class="btn" style="color:var(--critical);" onclick="confirmarAcao(this,'Clique de novo p/ confirmar',limparNFe)">Limpar importados</button>
         </div>
+        <div class="hint" id="file-nfe-pasta-nome" style="margin-top:6px;"></div>
         <div class="kpi-row" style="margin-top:14px;">
           <div class="kpi"><div class="l">Total (líquido de canceladas/denegadas)</div><div class="v" id="nfe-tot-valor">—</div></div>
           <div class="kpi"><div class="l">ICMS</div><div class="v" id="nfe-tot-icms">—</div></div>
@@ -426,12 +430,16 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           <h2>NFS-e Padrão Nacional — prestação e tomada de serviços</h2>
           <span class="pill accent" id="nfse-count">0 arquivo(s)</span>
         </div>
-        <p class="desc" style="margin-top:-4px;">Aceita o schema unificado (DPS/NFSe) adotado nacionalmente e também o layout ABRASF 2.04 (municipal legado, ex.: Ribeirão Preto/SP — CompNfse/InfNfse) — em XML avulso ou em um ou mais arquivos .zip contendo os XML. Outros layouts municipais legados podem não ser reconhecidos — o arquivo aparecerá marcado como "não reconhecido".</p>
-        <div class="btnrow" style="margin-top:10px;">
-          <input type="file" id="file-nfse" multiple accept=".xml,.zip" style="max-width:360px;">
+        <p class="desc" style="margin-top:-4px;">Aceita o schema unificado (DPS/NFSe) adotado nacionalmente e também o layout ABRASF 2.04 (municipal legado, ex.: Ribeirão Preto/SP — CompNfse/InfNfse) — em XML avulso, em uma pasta inteira de XML, ou em um ou mais arquivos .zip contendo os XML. Outros layouts municipais legados podem não ser reconhecidos — o arquivo aparecerá marcado como "não reconhecido".</p>
+        <div class="btnrow" style="margin-top:10px; flex-wrap:wrap;">
+          <input type="file" id="file-nfse" multiple accept=".xml,.zip" style="max-width:280px;">
+          <label class="btn" style="cursor:pointer;">Selecionar pasta
+            <input type="file" id="file-nfse-pasta" webkitdirectory multiple style="display:none;">
+          </label>
           <button class="btn primary" onclick="processarNFSe()">Processar NFS-e</button>
           <button class="btn" style="color:var(--critical);" onclick="confirmarAcao(this,'Clique de novo p/ confirmar',limparNFSe)">Limpar importados</button>
         </div>
+        <div class="hint" id="file-nfse-pasta-nome" style="margin-top:6px;"></div>
         <div class="kpi-row" style="margin-top:14px;">
           <div class="kpi"><div class="l">Total serviço (líquido de canceladas)</div><div class="v" id="nfse-tot-valor">—</div></div>
           <div class="kpi"><div class="l">ISS</div><div class="v" id="nfse-tot-iss">—</div></div>
@@ -2941,6 +2949,30 @@ function readFileAsArrayBuffer(file){
    da SEFAZ/prefeitura já compactadas). Descompacta no próprio navegador com JSZip — nenhum arquivo
    sai da máquina do usuário — e devolve uma lista uniforme {name, text} para o parser tratar igual,
    seja a origem um .xml solto ou uma entrada dentro do .zip (inclusive em subpastas). */
+/* Junta os arquivos do seletor normal (XML/zip avulsos) com os da pasta inteira
+   (webkitdirectory) num único array — os dois campos alimentam o mesmo processamento. */
+function arquivosCombinados(idAvulso, idPasta){
+  const a = document.getElementById(idAvulso).files;
+  const b = document.getElementById(idPasta).files;
+  return [...a, ...b];
+}
+/* Mostra quantos arquivos vieram da pasta selecionada — o <input webkitdirectory> não exibe
+   isso de forma clara/consistente entre navegadores como um <input> comum mostra o nome do arquivo. */
+function exibirNomePasta(idPasta, idHint){
+  const input = document.getElementById(idPasta);
+  const hint = document.getElementById(idHint);
+  if(!input || !hint) return;
+  input.addEventListener('change', () => {
+    if(!input.files.length){ hint.textContent = ''; return; }
+    const primeiro = input.files[0].webkitRelativePath || input.files[0].name;
+    const pasta = primeiro.includes('/') ? primeiro.split('/')[0] : '';
+    hint.textContent = pasta
+      ? `Pasta "${pasta}" selecionada — ${input.files.length} arquivo(s) (só os .xml serão lidos).`
+      : `${input.files.length} arquivo(s) selecionado(s).`;
+  });
+}
+exibirNomePasta('file-nfe-pasta','file-nfe-pasta-nome');
+exibirNomePasta('file-nfse-pasta','file-nfse-pasta-nome');
 async function expandirParaXml(fileList){
   const saida = [];
   for(const file of fileList){
@@ -2961,7 +2993,7 @@ async function expandirParaXml(fileList){
       }catch(e){
         saida.push({name: file.name, erro:true, motivoErro:'Não foi possível abrir o .zip (arquivo corrompido ou protegido por senha)'});
       }
-    } else {
+    } else if(/\.xml$/i.test(file.name)){
       try{
         const texto = await readFileAsText(file);
         saida.push({name: file.name, text: texto});
@@ -2969,6 +3001,9 @@ async function expandirParaXml(fileList){
         saida.push({name: file.name, erro:true});
       }
     }
+    /* qualquer outro tipo de arquivo é ignorado em silêncio — importante quando o usuário seleciona
+       uma pasta inteira (webkitdirectory), que traz junto tudo o que estiver nela (.pdf, .txt,
+       arquivos de sistema etc.), não só os XML que interessam aqui. */
   }
   return saida;
 }
@@ -2990,11 +3025,11 @@ const NFE_CSTAT_EXCLUIR = {
 };
 let nfeRows = [];
 async function processarNFe(){
-  const files = document.getElementById('file-nfe').files;
-  if(!files || !files.length){
+  const files = arquivosCombinados('file-nfe','file-nfe-pasta');
+  if(!files.length){
     const det = document.getElementById('nfe-detalhe');
     if(det) det.open = true;
-    document.getElementById('nfe-tabela').innerHTML = '<tr><td colspan="7" style="color:var(--critical)">Nenhum arquivo selecionado — clique em "Escolher arquivos" e selecione o(s) XML ou .zip antes de clicar em "Processar NF-e".</td></tr>';
+    document.getElementById('nfe-tabela').innerHTML = '<tr><td colspan="7" style="color:var(--critical)">Nenhum arquivo selecionado — clique em "Escolher arquivos" (ou "Selecionar pasta") e escolha o(s) XML, a pasta ou o .zip antes de clicar em "Processar NF-e".</td></tr>';
     return;
   }
   const cnpjCliente = clienteCNPJ();
@@ -3153,11 +3188,11 @@ function extrairCompNfseABRASF(compNode, nomeArquivo, cnpjCliente){
 
 let nfseRows = [];
 async function processarNFSe(){
-  const files = document.getElementById('file-nfse').files;
-  if(!files || !files.length){
+  const files = arquivosCombinados('file-nfse','file-nfse-pasta');
+  if(!files.length){
     const det = document.getElementById('nfse-detalhe');
     if(det) det.open = true;
-    document.getElementById('nfse-tabela').innerHTML = '<tr><td colspan="6" style="color:var(--critical)">Nenhum arquivo selecionado — clique em "Escolher arquivos" e selecione o(s) XML ou .zip antes de clicar em "Processar NFS-e".</td></tr>';
+    document.getElementById('nfse-tabela').innerHTML = '<tr><td colspan="6" style="color:var(--critical)">Nenhum arquivo selecionado — clique em "Escolher arquivos" (ou "Selecionar pasta") e escolha o(s) XML, a pasta ou o .zip antes de clicar em "Processar NFS-e".</td></tr>';
     return;
   }
   const cnpjCliente = clienteCNPJ();
@@ -3683,12 +3718,16 @@ function confirmarAcao(btn, textoConfirmar, acao){
 }
 function limparNFe(){
   document.getElementById('file-nfe').value = '';
+  document.getElementById('file-nfe-pasta').value = '';
+  document.getElementById('file-nfe-pasta-nome').textContent = '';
   nfeRows = [];
   renderNFe();
   atualizarResumoImportacao();
 }
 function limparNFSe(){
   document.getElementById('file-nfse').value = '';
+  document.getElementById('file-nfse-pasta').value = '';
+  document.getElementById('file-nfse-pasta-nome').textContent = '';
   nfseRows = [];
   renderNFSe();
   atualizarResumoImportacao();
