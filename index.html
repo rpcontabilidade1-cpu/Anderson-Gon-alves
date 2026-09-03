@@ -3037,6 +3037,15 @@ function lerDREColada(){
 async function lerDRE(){
   const file = document.getElementById('file-dre').files[0];
   if(!file) return;
+  const nomeMin = file.name.toLowerCase();
+  if(nomeMin.endsWith('.pdf')){
+    document.getElementById('dre-preview').innerHTML = '<tr><td style="color:var(--critical)">Este campo só lê planilha (.xlsx/.xls/.csv) — um PDF selecionado aqui não é uma planilha e não pode ser interpretado como uma (o resultado seria dados sem sentido, como aconteceu). Não há leitor de PDF neste ambiente: abra o PDF, copie o texto (Ctrl+A / Ctrl+C) e cole no campo "Ou cole o texto copiado de um PDF" ao lado, depois clique em "Processar texto colado".</td></tr>';
+    return;
+  }
+  if(!/\.(xlsx|xls|csv)$/.test(nomeMin)){
+    document.getElementById('dre-preview').innerHTML = '<tr><td style="color:var(--critical)">Formato não suportado neste campo — use .xlsx, .xls ou .csv. Para PDF, use o campo "Ou cole o texto copiado de um PDF" ao lado.</td></tr>';
+    return;
+  }
   let wb;
   try{
     if(file.name.toLowerCase().endsWith('.csv')){
