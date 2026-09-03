@@ -447,13 +447,23 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
         <div class="card-head">
           <h2>PGDAS-D — RBT12 e Folha12 (Simples Nacional)</h2>
         </div>
-        <p class="desc" style="margin-top:-4px;">Calcula a RBT12 (receita bruta acumulada nos 12 meses anteriores ao PA) e a FS12/Folha12 (folha de salários acumulada nos 12 meses, base do Fator R) a partir do Extrato do PGDAS-D. Não há leitor de PDF nativo neste ambiente: abra o extrato no e-CAC/Simples Nacional, copie o texto (Ctrl+A / Ctrl+C) e cole abaixo.</p>
-        <div class="field">
-          <label>Cole aqui o texto do Extrato do PGDAS-D</label>
+        <p class="desc" style="margin-top:-4px;">Calcula a RBT12 (receita bruta acumulada nos 12 meses anteriores ao PA) e a FS12/Folha12 (folha de salários acumulada nos 12 meses, base do Fator R) a partir do Extrato do PGDAS-D. Envie o PDF do extrato diretamente — a leitura acontece aqui no navegador (nada é enviado a servidor) — ou, se o PDF não tiver camada de texto (ex.: digitalizado por scanner), cole o texto copiado dele.</p>
+        <div class="grid2">
+          <div class="field">
+            <label>PDF do Extrato do PGDAS-D</label>
+            <input type="file" id="pgdasd-file" accept=".pdf" style="max-width:360px;">
+          </div>
+          <div class="field" style="justify-content:flex-end;">
+            <button class="btn primary" onclick="lerPGDASDPdf()">Ler PDF do PGDAS-D</button>
+          </div>
+        </div>
+        <div class="note" id="pgdasd-pdf-status" style="margin-top:10px; display:none;"></div>
+        <div class="field" style="margin-top:14px;">
+          <label>Ou cole aqui o texto do Extrato do PGDAS-D (Ctrl+A / Ctrl+C no PDF, ou colado automaticamente pela leitura acima)</label>
           <textarea id="pgdasd-paste" rows="4" style="font:inherit;font-size:12.5px;padding:9px 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);resize:vertical;" placeholder="Cole aqui o texto do Extrato do PGDAS-D — o sistema procura os totais RBT12 e FS12 diretamente; se não encontrar, soma a tabela mensal de Receita Bruta / Folha de Salários (até 12 linhas)."></textarea>
         </div>
         <div class="btnrow" style="margin-top:10px;">
-          <button class="btn primary" onclick="processarPGDASD()">Processar PGDAS-D</button>
+          <button class="btn primary" onclick="processarPGDASD()">Processar texto do PGDAS-D</button>
         </div>
         <div class="note" id="pgdasd-status" style="margin-top:12px; display:none;"></div>
         <div class="grid3" style="margin-top:14px;">
@@ -880,6 +890,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 <script>
 document.getElementById('hoje').textContent = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 
@@ -3314,6 +3325,62 @@ function parsePGDASD(texto){
   if(rbt12===null) rbt12 = somarTabelaMensalPGDASD(linhas, /receita\s*bruta/i, /RBT\s*-?\s*12|fator\s*r|folha\s*de\s*sal[áa]rios/i);
   if(fs12===null) fs12 = somarTabelaMensalPGDASD(linhas, /folha\s*de\s*sal[áa]rios/i, /RBT\s*-?\s*12|fator\s*r|receita\s*bruta\s*total/i);
   return { rbt12, fs12 };
+}
+
+/* Leitura do PDF do PGDAS-D direto no navegador (PDF.js via CDN — nenhum arquivo sai da máquina
+   do usuário, mesma política de privacidade do restante da ferramenta). Reconstrói as linhas do
+   texto agrupando os itens extraídos pela posição vertical (mesma técnica usada por qualquer
+   leitor de texto de PDF): sem isso, rótulo e valor de linhas diferentes ficam grudados numa
+   string só e o parser por linha (mesmo usado para o texto colado) deixaria de funcionar. */
+async function extrairTextoPDF(file){
+  if(typeof pdfjsLib === 'undefined'){
+    throw new Error('Biblioteca de leitura de PDF não carregou (bloqueio de rede/CDN). Use "Ou cole aqui o texto" abaixo: abra o PDF, Ctrl+A, Ctrl+C, e cole no campo.');
+  }
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+  const buf = await readFileAsArrayBuffer(file);
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let texto = '';
+  for(let p=1; p<=pdf.numPages; p++){
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    let linhaAtualY = null;
+    let linha = [];
+    for(const item of content.items){
+      const y = item.transform[5];
+      if(linhaAtualY===null || Math.abs(y-linhaAtualY)>2){
+        if(linha.length) texto += linha.join(' ') + '\n';
+        linha = [item.str];
+        linhaAtualY = y;
+      } else {
+        linha.push(item.str);
+      }
+    }
+    if(linha.length) texto += linha.join(' ') + '\n';
+    texto += '\n';
+  }
+  return texto;
+}
+async function lerPGDASDPdf(){
+  const file = document.getElementById('pgdasd-file').files[0];
+  const status = document.getElementById('pgdasd-pdf-status');
+  status.style.display = '';
+  if(!file){
+    status.innerHTML = '<span style="color:var(--critical)">Nenhum arquivo selecionado — clique em "Escolher arquivo" e selecione o PDF do extrato.</span>';
+    return;
+  }
+  status.innerHTML = 'Lendo PDF…';
+  try{
+    const texto = await extrairTextoPDF(file);
+    if(!texto || !texto.trim()){
+      status.innerHTML = '<span style="color:var(--warn)">O PDF foi lido, mas não encontrei texto nele — provavelmente é uma imagem digitalizada (scanner), sem camada de texto. Não há OCR neste ambiente: copie os valores manualmente para o campo de texto abaixo.</span>';
+      return;
+    }
+    document.getElementById('pgdasd-paste').value = texto;
+    status.innerHTML = 'PDF lido com sucesso — texto extraído e processado abaixo.';
+    processarPGDASD();
+  }catch(e){
+    status.innerHTML = `<span style="color:var(--critical)">Não foi possível ler este PDF (${(e&&e.message)||'erro desconhecido'}). Use "Ou cole aqui o texto" abaixo como alternativa.</span>`;
+  }
 }
 function processarPGDASD(){
   const texto = document.getElementById('pgdasd-paste').value;
