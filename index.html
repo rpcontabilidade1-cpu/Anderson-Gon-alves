@@ -466,6 +466,13 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           <button class="btn primary" onclick="processarPGDASD()">Processar texto do PGDAS-D</button>
         </div>
         <div class="note" id="pgdasd-status" style="margin-top:12px; display:none;"></div>
+        <div class="grid2" style="margin-top:14px;">
+          <div class="field">
+            <label>Faturamento do PA identificado (R$) — mês da apuração</label>
+            <input type="number" id="pgdasd-faturamento" min="0" step="100">
+            <div class="hint">Receita Bruta Auferida no período (RPA) — vai para o "Faturamento mensal" do Comparativo de Regimes.</div>
+          </div>
+        </div>
         <div class="grid3" style="margin-top:14px;">
           <div class="field">
             <label>RBT12 identificado (R$)</label>
@@ -481,9 +488,9 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           </div>
         </div>
         <div class="btnrow" style="margin-top:14px;">
-          <button class="btn primary" onclick="aplicarPGDASD()">Aplicar RBT12 e Fator R à simulação</button>
+          <button class="btn primary" onclick="aplicarPGDASD()">Aplicar Faturamento, RBT12 e Fator R à simulação</button>
         </div>
-        <div class="note" style="margin-top:12px;"><b>Como funciona:</b> primeiro procuro as linhas com os totais que a Receita Federal já calcula no extrato (rótulos <code>RBT12</code> e <code>FS12</code>). Se não encontrar, tento somar a tabela mensal de Receita Bruta e de Folha de Salários (até 12 linhas cada). <i>O layout do Extrato do PGDAS-D pode variar por competência/versão — por isso os valores identificados sempre aparecem nos campos acima para conferência e ajuste manual; nada é aplicado à simulação até você clicar em "Aplicar". "Aplicar" grava a RBT12 no campo do Comparativo de Regimes e o Fator R (%) no campo "Folha de pagamento" usado na apuração — a decisão de qual Anexo usar continua sendo sua: o Fator R (LC 123/2006, art. 18, §§5º-C a 5º-J) só se aplica às atividades de serviço ali listadas; construção civil e outras atividades do Anexo IV não usam esse critério.</i></div>
+        <div class="note" style="margin-top:12px;"><b>Como funciona:</b> primeiro procuro as linhas com os totais que a Receita Federal já calcula no relatório/extrato (Receita Bruta Auferida/RPA, RBT12 e FS12). Se não encontrar RBT12/FS12, tento somar a tabela mensal de Receita Bruta e de Folha de Salários (até 12 linhas cada). <i>O layout do relatório pode variar por competência/versão/software — por isso os valores identificados sempre aparecem nos campos acima para conferência e ajuste manual; nada é aplicado à simulação até você clicar em "Aplicar". "Aplicar" grava o Faturamento e a RBT12 no Comparativo de Regimes, o Fator R (%) no campo "Folha de pagamento" usado na apuração, e leva você para a aba Comparativo de Regimes — a decisão de qual Anexo usar continua sendo sua: o Fator R (LC 123/2006, art. 18, §§5º-C a 5º-J) só se aplica às atividades de serviço ali listadas; construção civil e outras atividades do Anexo IV não usam esse critério (e pagam a CPP patronal à parte do DAS, mesmo no Simples).</i></div>
       </div>
 
       <div class="card">
@@ -699,6 +706,24 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
             <label>Folha de pagamento (% da receita)</label>
             <input type="number" id="folha" value="22" min="0" max="100" step="1">
             <div class="hint">Não gera crédito em nenhum regime (não é aquisição tributada).</div>
+          </div>
+        </div>
+
+        <div class="grid3" style="margin-top:14px;">
+          <div class="field">
+            <label>RAT — Risco Ambiental do Trabalho (%)</label>
+            <input type="number" id="rat" value="2" min="0" max="6" step="0.5">
+            <div class="hint">1% a 3% conforme grau de risco da atividade, ajustado pelo FAP de 0,5 a 2,0 (Decreto 3.048/1999, Anexo V; Lei 10.666/2003, art. 10). Confirme o CNPP/FAP real do cliente — 2% é só uma referência de risco médio.</div>
+          </div>
+          <div class="field">
+            <label>Terceiros / Sistema S (%)</label>
+            <input type="number" id="terceiros" value="5.8" min="0" max="15" step="0.1">
+            <div class="hint">SESC/SENAC/SEBRAE/salário-educação/INCRA etc. — soma típica ≈5,8% para comércio/serviços; varia por CNAE (Lei 8.212/1991, art. 22, §1º, c/c legislação de cada terceiro).</div>
+          </div>
+          <div class="field">
+            <label>Encargos sobre a folha — só Presumido/Real</label>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;margin-top:9px;" id="encargos-folha-preview">—</div>
+            <div class="hint">CPP (20%) + RAT + Terceiros, sobre a folha (% da receita × faturamento). No Simples Nacional (exceto Anexo IV) a CPP patronal já está embutida no DAS — por isso não entra nos regimes Único/Híbrido aqui.</div>
           </div>
         </div>
       </div>
@@ -966,7 +991,7 @@ function simplesUnicoOuMisto(fat, rbt12){
 
 /* ---------- regime highlight + inputs ---------- */
 document.getElementById('regime').addEventListener('change', calcular);
-['anexo','anexo-a','anexo-b','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','aliqreforma','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'].forEach(id=>{
+['anexo','anexo-a','anexo-b','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','rat','terceiros','aliqreforma','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'].forEach(id=>{
   document.getElementById(id).addEventListener('input', calcular);
 });
 function sincronizarFaturamentoMisto(){
@@ -1087,6 +1112,19 @@ function calcular(){
     memSH.push(linhaMemoria('Carga total Híbrido = DAS reduzido + IBS/CBS à parte', totalSH));
   }
 
+  /* ---- Encargos sobre a folha (CPP + RAT + Terceiros) — só Lucro Presumido/Real.
+     No Simples Nacional (exceto Anexo IV) a CPP patronal já está embutida no DAS (LC 123/2006,
+     art. 13, VI e art. 18, §5º-C), então não entra aqui nos regimes Único/Híbrido. */
+  const ratPct = (parseFloat(document.getElementById('rat').value)||0)/100;
+  const terceirosPct = (parseFloat(document.getElementById('terceiros').value)||0)/100;
+  const folhaMensal = fat*folhaPct;
+  const cpp = folhaMensal*0.20;
+  const rat = folhaMensal*ratPct;
+  const terceiros = folhaMensal*terceirosPct;
+  const encargosFolha = cpp+rat+terceiros;
+  const elEncargosPreview = document.getElementById('encargos-folha-preview');
+  if(elEncargosPreview) elEncargosPreview.textContent = brl(encargosFolha)+'/mês';
+
   /* ---- Lucro Presumido ---- */
   const presIRPJ = ativ==='comercio' ? 0.08 : 0.32;
   const presCSLL = ativ==='comercio' ? 0.12 : 0.32;
@@ -1095,7 +1133,7 @@ function calcular(){
   const csllP = baseCSLLp*0.09;
   const pisP = fat*0.0065, cofinsP = fat*0.03;
   const icmsIssP = fat*icmsIssPct;
-  const totalLP = irpjP+csllP+pisP+cofinsP+icmsIssP;
+  const totalLP = irpjP+csllP+pisP+cofinsP+icmsIssP+encargosFolha;
   const memLP = [];
   memLP.push(linhaMemoria(`Base presumida IRPJ (${pct(presIRPJ*100)} da receita)`, baseIRPJp));
   memLP.push(linhaMemoria('IRPJ (15% + adicional 10% s/ excedente a R$20.000)', irpjP));
@@ -1104,6 +1142,11 @@ function calcular(){
   memLP.push(linhaMemoria('PIS cumulativo (0,65% s/ receita)', pisP));
   memLP.push(linhaMemoria('COFINS cumulativo (3% s/ receita)', cofinsP));
   memLP.push(linhaMemoria(`ICMS/ISS (alíquota efetiva informada ${pct(icmsIssPct*100)})`, icmsIssP));
+  memLP.push(linhaMemoria(`Folha de pagamento (${pct(folhaPct*100)} da receita)`, folhaMensal));
+  memLP.push(linhaMemoria('CPP — INSS Patronal (20% s/ folha, Lei 8.212/1991, art. 22, I)', cpp));
+  memLP.push(linhaMemoria(`RAT — Risco Ambiental do Trabalho (${pct(ratPct*100)} s/ folha, já com FAP)`, rat));
+  memLP.push(linhaMemoria(`Terceiros/Sistema S (${pct(terceirosPct*100)} s/ folha)`, terceiros));
+  memLP.push(linhaMemoria('Total de encargos sobre a folha (CPP + RAT + Terceiros)', encargosFolha));
 
   /* ---- Lucro Real ---- */
   const lucroReal = fat*margemPct;
@@ -1112,7 +1155,7 @@ function calcular(){
   const csllR = lucroReal*0.09;
   const pisR = Math.max(fat-creditosPisCofins,0)*0.0165, cofinsR = Math.max(fat-creditosPisCofins,0)*0.076;
   const icmsIssR = fat*icmsIssPct;
-  const totalLR = irpjR+csllR+pisR+cofinsR+icmsIssR;
+  const totalLR = irpjR+csllR+pisR+cofinsR+icmsIssR+encargosFolha;
   const memLR = [];
   memLR.push(linhaMemoria(`Lucro real apurado (${pct(margemPct*100)} da receita)`, lucroReal));
   memLR.push(linhaMemoria('IRPJ (15% + adicional 10% s/ excedente a R$20.000)', irpjR));
@@ -1123,6 +1166,11 @@ function calcular(){
   memLR.push(linhaMemoria('PIS não cumulativo (1,65% s/ base líquida de créditos)', pisR));
   memLR.push(linhaMemoria('COFINS não cumulativo (7,6% s/ base líquida de créditos)', cofinsR));
   memLR.push(linhaMemoria(`ICMS/ISS (alíquota efetiva informada ${pct(icmsIssPct*100)})`, icmsIssR));
+  memLR.push(linhaMemoria(`Folha de pagamento (${pct(folhaPct*100)} da receita)`, folhaMensal));
+  memLR.push(linhaMemoria('CPP — INSS Patronal (20% s/ folha, Lei 8.212/1991, art. 22, I)', cpp));
+  memLR.push(linhaMemoria(`RAT — Risco Ambiental do Trabalho (${pct(ratPct*100)} s/ folha, já com FAP)`, rat));
+  memLR.push(linhaMemoria(`Terceiros/Sistema S (${pct(terceirosPct*100)} s/ folha)`, terceiros));
+  memLR.push(linhaMemoria('Total de encargos sobre a folha (CPP + RAT + Terceiros)', encargosFolha));
 
   document.getElementById('mem-su').innerHTML = memSU.join('');
   document.getElementById('mem-sh').innerHTML = memSH.join('');
@@ -1310,13 +1358,18 @@ function calcularTrajetoria(){
   const despOutras = parseFloat(document.getElementById('desp-outras').value)||0;
   const despesasCreditaveis = despEnergia+despAluguel+despServicos+despTelecom+despOutras;
 
+  const folhaPct = (parseFloat(document.getElementById('folha').value)||0)/100;
+  const ratPct = (parseFloat(document.getElementById('rat').value)||0)/100;
+  const terceirosPct = (parseFloat(document.getElementById('terceiros').value)||0)/100;
+  const encargosFolha = fat*folhaPct*(0.20+ratPct+terceirosPct);
+
   const presIRPJ = ativ==='comercio'?0.08:0.32, presCSLL = ativ==='comercio'?0.12:0.32;
   const baseIRPJp = fat*presIRPJ, baseCSLLp = fat*presCSLL;
-  const fixoP = (baseIRPJp*0.15+Math.max(0,(baseIRPJp-20000))*0.10) + baseCSLLp*0.09;
+  const fixoP = (baseIRPJp*0.15+Math.max(0,(baseIRPJp-20000))*0.10) + baseCSLLp*0.09 + encargosFolha;
   const pisCofinsP_full = fat*0.0065 + fat*0.03;
 
   const lucroReal = fat*margemPct;
-  const fixoR = (lucroReal*0.15+Math.max(0,(lucroReal-20000))*0.10) + lucroReal*0.09;
+  const fixoR = (lucroReal*0.15+Math.max(0,(lucroReal-20000))*0.10) + lucroReal*0.09 + encargosFolha;
   const creditosPisCofins = fat*insumosPct + despesasCreditaveis;
   const baseLiqR = Math.max(fat-creditosPisCofins,0);
   const pisCofinsR_full = baseLiqR*0.0165 + baseLiqR*0.076;
@@ -1403,7 +1456,7 @@ document.getElementById('cbsfracao').addEventListener('input', atualizarTrajetor
 
 function salvarSimulacao(){
   try{
-    const ids = ['regime','anexo-modo','anexo','anexo-a','anexo-b','anexo-a-valor','anexo-b-valor','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','aliqreforma','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'];
+    const ids = ['regime','anexo-modo','anexo','anexo-a','anexo-b','anexo-a-valor','anexo-b-valor','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','rat','terceiros','aliqreforma','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'];
     const data = {}; ids.forEach(id=> data[id]=document.getElementById(id).value);
     localStorage.setItem('dossie-simulacao', JSON.stringify(data));
   }catch(e){}
@@ -3298,6 +3351,31 @@ function ultimoValorDaLinha(linha){
   if(!nums || !nums.length) return null;
   return parseDRENumero(nums[nums.length-1]);
 }
+function todosValoresDaLinha(linha){
+  const semRotulo = linha.replace(/\bRBT\s*-?\s*12\b/gi,'').replace(/\bFS\s*-?\s*12\b/gi,'').replace(/\bRPA\b/gi,'');
+  const numRe = /-?\d{1,3}(?:\.\d{3})*,\d{1,2}|-?\d{1,3}(?:\.\d{3}){1,}/g;
+  const nums = semRotulo.match(numRe);
+  return nums ? nums.map(parseDRENumero) : [];
+}
+function extrairFaturamentoPA(linhas){
+  /* Faturamento do período (mês corrente) — em relatórios de apuração em tabela, a coluna
+     "Total" às vezes é reconstruída ANTES do rótulo (não depois, como no texto colado comum),
+     por isso pega o primeiro valor não-zero da linha, não o último. Prioriza "Receita Bruta
+     Auferida" (rótulo específico e inequívoco) e só usa "RPA" como alternativa. */
+  for(const linha of linhas){
+    if(/receita\s*bruta\s*auferida/i.test(linha)){
+      const v = todosValoresDaLinha(linha).find(v=>v>0);
+      if(v!==undefined) return v;
+    }
+  }
+  for(const linha of linhas){
+    if(/\bRPA\b/i.test(linha)){
+      const v = todosValoresDaLinha(linha).find(v=>v>0);
+      if(v!==undefined) return v;
+    }
+  }
+  return null;
+}
 function somarTabelaMensalPGDASD(linhas, reInicio, reFim){
   const idxInicio = linhas.findIndex(l=>reInicio.test(l));
   if(idxInicio===-1) return null;
@@ -3340,7 +3418,8 @@ function parsePGDASD(texto){
     fs12 = fatorR/100*rbt12;
     fs12Estimado = true;
   }
-  return { rbt12, fs12, fatorR, fs12Estimado };
+  const faturamento = extrairFaturamentoPA(linhas);
+  return { rbt12, fs12, fatorR, fs12Estimado, faturamento };
 }
 
 /* Leitura do PDF do PGDAS-D direto no navegador (PDF.js via CDN — nenhum arquivo sai da máquina
@@ -3410,18 +3489,20 @@ function processarPGDASD(){
   const texto = document.getElementById('pgdasd-paste').value;
   const status = document.getElementById('pgdasd-status');
   if(!texto || !texto.trim()){ status.style.display='none'; return; }
-  const { rbt12, fs12, fatorR, fs12Estimado } = parsePGDASD(texto);
+  const { rbt12, fs12, fatorR, fs12Estimado, faturamento } = parsePGDASD(texto);
+  document.getElementById('pgdasd-faturamento').value = faturamento!==null ? faturamento.toFixed(2) : '';
   document.getElementById('pgdasd-rbt12').value = rbt12!==null ? rbt12.toFixed(2) : '';
   document.getElementById('pgdasd-fs12').value = fs12!==null ? fs12.toFixed(2) : '';
   status.style.display = '';
-  if(rbt12===null && fs12===null && fatorR===null){
-    status.innerHTML = '<span style="color:var(--critical)">Não identifiquei RBT12, FS12 nem Fator R automaticamente neste texto. Confira se colou o extrato inteiro (Ctrl+A no leitor de PDF) ou informe os valores manualmente nos campos abaixo.</span>';
+  if(rbt12===null && fs12===null && fatorR===null && faturamento===null){
+    status.innerHTML = '<span style="color:var(--critical)">Não identifiquei Faturamento, RBT12, FS12 nem Fator R automaticamente neste texto. Confira se colou o extrato/relatório inteiro (Ctrl+A no leitor de PDF) ou informe os valores manualmente nos campos abaixo.</span>';
   } else {
     let msgFs12;
     if(fs12Estimado) msgFs12 = `FS12 não vem em R$ neste relatório — estimado a partir do Fator R informado (${fatorR.toFixed(2)}%) × RBT12; confira/ajuste se tiver o valor exato da folha.`;
     else if(fs12!==null) msgFs12 = 'FS12 identificado.';
     else msgFs12 = 'FS12 não identificado (normal se a atividade não estiver sujeita ao Fator R, ou se o relatório não detalhar folha nem Fator R).';
-    status.innerHTML = (rbt12!==null?'RBT12 identificado.':'<span style="color:var(--warn)">RBT12 não identificado — informe manualmente.</span>') + ' ' + msgFs12;
+    status.innerHTML = (faturamento!==null?'Faturamento do PA identificado.':'<span style="color:var(--warn)">Faturamento do PA não identificado — informe manualmente.</span>')
+      + ' ' + (rbt12!==null?'RBT12 identificado.':'<span style="color:var(--warn)">RBT12 não identificado — informe manualmente.</span>') + ' ' + msgFs12;
   }
   atualizarFatorRPGDASD();
 }
@@ -3436,11 +3517,15 @@ function atualizarFatorRPGDASD(){
     : ' <span class="pill warn" style="margin-left:4px;">&lt; 28% — Anexo V</span>');
 }
 function aplicarPGDASD(){
+  const faturamento = parseFloat(document.getElementById('pgdasd-faturamento').value)||0;
   const rbt12 = parseFloat(document.getElementById('pgdasd-rbt12').value)||0;
   const fs12 = parseFloat(document.getElementById('pgdasd-fs12').value)||0;
+  if(faturamento>0) document.getElementById('faturamento').value = faturamento.toFixed(2);
   if(rbt12>0) document.getElementById('rbt12').value = rbt12.toFixed(2);
   if(rbt12>0) document.getElementById('folha').value = (fs12/rbt12*100).toFixed(1);
   calcular();
+  const btnComparativo = document.querySelector('.navbtn[data-panel="comparativo"]');
+  if(btnComparativo) btnComparativo.click();
 }
 
 const DRE_CONCEITOS = [
