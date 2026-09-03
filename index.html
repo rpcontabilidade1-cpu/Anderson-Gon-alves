@@ -172,7 +172,8 @@ input[type=number], input[type=text], select{
   border:1px solid var(--border); background:var(--surface-2); color:var(--text);
   width:100%;
 }
-input[type=number]{ font-family:'IBM Plex Mono',monospace; }
+input[type=number], input.money{ font-family:'IBM Plex Mono',monospace; }
+input.money{ text-align:right; }
 select{ cursor:pointer; }
 input:focus, select:focus{ background:var(--surface); }
 
@@ -482,18 +483,18 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
         <div class="grid2" style="margin-top:14px;">
           <div class="field">
             <label>Faturamento do PA identificado (R$) — mês da apuração</label>
-            <input type="number" id="pgdasd-faturamento" min="0" step="100">
+            <input type="text" inputmode="decimal" class="money" id="pgdasd-faturamento" placeholder="0,00">
             <div class="hint">Receita Bruta Auferida no período (RPA) — vai para o "Faturamento mensal" do Comparativo de Regimes.</div>
           </div>
         </div>
         <div class="grid3" style="margin-top:14px;">
           <div class="field">
             <label>RBT12 identificado (R$)</label>
-            <input type="number" id="pgdasd-rbt12" min="0" step="100" oninput="atualizarFatorRPGDASD()">
+            <input type="text" inputmode="decimal" class="money" id="pgdasd-rbt12" placeholder="0,00" oninput="atualizarFatorRPGDASD()">
           </div>
           <div class="field">
             <label>FS12 — Folha 12 meses identificada (R$)</label>
-            <input type="number" id="pgdasd-fs12" min="0" step="100" oninput="atualizarFatorRPGDASD()">
+            <input type="text" inputmode="decimal" class="money" id="pgdasd-fs12" placeholder="0,00" oninput="atualizarFatorRPGDASD()">
           </div>
           <div class="field">
             <label>Fator R calculado (FS12 ÷ RBT12)</label>
@@ -680,7 +681,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
             </div>
             <div class="field">
               <label>Faturamento no Anexo A (R$/mês)</label>
-              <input type="number" id="anexo-a-valor" value="90000" min="0" step="1000">
+              <input type="text" inputmode="decimal" class="money" id="anexo-a-valor" value="90.000,00">
             </div>
           </div>
           <div class="grid2" style="margin-top:14px;">
@@ -696,7 +697,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
             </div>
             <div class="field">
               <label>Faturamento no Anexo B (R$/mês)</label>
-              <input type="number" id="anexo-b-valor" value="90000" min="0" step="1000">
+              <input type="text" inputmode="decimal" class="money" id="anexo-b-valor" value="90.000,00">
               <div class="hint">O "Faturamento mensal (R$)" abaixo passa a ser calculado automaticamente como A + B enquanto o regime misto estiver ativo.</div>
             </div>
           </div>
@@ -705,12 +706,12 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
         <div class="grid3" style="margin-top:14px;">
           <div class="field">
             <label>Faturamento mensal (R$)</label>
-            <input type="number" id="faturamento" value="180000" min="0" step="1000">
+            <input type="text" inputmode="decimal" class="money" id="faturamento" value="180.000,00">
             <div class="hint" id="faturamento-hint-misto" style="display:none;">Bloqueado — calculado automaticamente como Anexo A + Anexo B no regime misto.</div>
           </div>
           <div class="field">
             <label>RBT12 — receita bruta últimos 12m (R$)</label>
-            <input type="number" id="rbt12" value="2100000" min="0" step="10000">
+            <input type="text" inputmode="decimal" class="money" id="rbt12" value="2.100.000,00">
             <div class="hint">Simples Nacional (Único e Híbrido) — define a faixa e a alíquota efetiva.</div>
           </div>
           <div class="field">
@@ -804,13 +805,13 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
         </div>
         <p class="desc" style="margin-top:-4px;">Sob a não cumulatividade plena (art. 28 e ss., LC 214/2025), praticamente toda aquisição tributada de bens e serviços gera crédito financeiro — inclusive despesas gerais que hoje só geram crédito de PIS/COFINS em hipóteses específicas (art. 3º, Leis 10.637/2002 e 10.833/2003). Informe os valores mensais pagos a fornecedores/prestadores tributados por CBS/IBS (ou, hoje, por PIS/COFINS não cumulativo).</p>
         <div class="grid3" style="margin-top:10px;">
-          <div class="field"><label>Energia elétrica (R$/mês)</label><input type="number" id="desp-energia" value="4500" min="0" step="100"></div>
-          <div class="field"><label>Aluguel / condomínio (R$/mês)</label><input type="number" id="desp-aluguel" value="8000" min="0" step="100"></div>
-          <div class="field"><label>Serviços tomados de terceiros — contábil, jurídico, manutenção etc. (R$/mês)</label><input type="number" id="desp-servicos" value="3500" min="0" step="100"></div>
+          <div class="field"><label>Energia elétrica (R$/mês)</label><input type="text" inputmode="decimal" class="money" id="desp-energia" value="4.500,00"></div>
+          <div class="field"><label>Aluguel / condomínio (R$/mês)</label><input type="text" inputmode="decimal" class="money" id="desp-aluguel" value="8.000,00"></div>
+          <div class="field"><label>Serviços tomados de terceiros — contábil, jurídico, manutenção etc. (R$/mês)</label><input type="text" inputmode="decimal" class="money" id="desp-servicos" value="3.500,00"></div>
         </div>
         <div class="grid2" style="margin-top:14px;">
-          <div class="field"><label>Telecomunicações / internet (R$/mês)</label><input type="number" id="desp-telecom" value="1200" min="0" step="50"></div>
-          <div class="field"><label>Outras despesas tributadas com direito a crédito — frete, arrendamento etc. (R$/mês)</label><input type="number" id="desp-outras" value="2000" min="0" step="100"></div>
+          <div class="field"><label>Telecomunicações / internet (R$/mês)</label><input type="text" inputmode="decimal" class="money" id="desp-telecom" value="1.200,00"></div>
+          <div class="field"><label>Outras despesas tributadas com direito a crédito — frete, arrendamento etc. (R$/mês)</label><input type="text" inputmode="decimal" class="money" id="desp-outras" value="2.000,00"></div>
         </div>
         <div class="note" style="margin-top:12px;">Total de despesas creditáveis: <b class="num" id="desp-total">—</b>/mês. Esse valor soma-se aos insumos/compras (% da receita) na apuração do crédito de CBS/IBS (Regime Híbrido) e do PIS/COFINS não cumulativo (Lucro Real).</div>
       </div>
@@ -885,22 +886,55 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
 
       <div class="card">
         <div class="card-head"><h2>Simulador de formação de preço</h2></div>
-        <div class="grid3">
-          <div class="field"><label>Custo direto / mercadoria (R$)</label><input type="number" id="pv-custo" value="1000" step="10"></div>
+        <div class="grid2">
+          <div class="field">
+            <label>Regime de tributação do cliente</label>
+            <select id="pv-regime">
+              <option value="presumido" selected>Lucro Presumido/Real — ICMS/ISS/PIS/COFINS separados</option>
+              <option value="simples">Simples Nacional — DAS único</option>
+            </select>
+            <div class="hint">Define os campos de tributo abaixo. No Simples, IRPJ/CSLL/PIS/COFINS/CPP e ICMS/ISS/IPI (quando Anexo II) já vêm embutidos numa única alíquota — o DAS.</div>
+          </div>
+        </div>
+        <div class="grid3" style="margin-top:14px;">
+          <div class="field"><label>Custo direto / mercadoria (R$)</label><input type="text" inputmode="decimal" class="money" id="pv-custo" value="1.000,00"></div>
           <div class="field"><label>Despesas variáveis — comissão, frete etc. (%)</label><input type="number" id="pv-desp" value="6" step="0.5"></div>
           <div class="field"><label>Margem de lucro desejada (%)</label><input type="number" id="pv-margem" value="15" step="0.5"></div>
         </div>
-        <div class="grid4" style="margin-top:14px;">
+        <div class="grid4" style="margin-top:14px;" id="wrap-pv-presumido">
           <div class="field"><label>ICMS (%)</label><input type="number" id="pv-icms" value="10" step="0.5" min="0"></div>
           <div class="field"><label>ISS (%)</label><input type="number" id="pv-iss" value="0" step="0.5" min="0"></div>
           <div class="field"><label>PIS (%)</label><input type="number" id="pv-pis" value="0.65" step="0.05" min="0"></div>
           <div class="field"><label>COFINS (%)</label><input type="number" id="pv-cofins" value="3" step="0.05" min="0"></div>
         </div>
+        <div class="grid2" style="margin-top:14px;" id="wrap-pv-ipi">
+          <div class="field">
+            <label>IPI — calculado por fora (%)</label>
+            <input type="number" id="pv-ipi" value="0" step="0.5" min="0">
+            <div class="hint">Lei 4.502/1964 e RIPI (Dec. 7.212/2010), art. 190 — o IPI não integra sua própria base; é destacado na nota e somado ao preço já formado. Só aplicável a operações de industrialização.</div>
+          </div>
+          <div class="field">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;margin-top:2px;">
+              <input type="checkbox" id="pv-ipi-novo" style="width:auto;"> Manter IPI também no preço novo (CBS/IBS)
+            </label>
+            <div class="hint">Deixe desmarcado por padrão — o IPI é zerado a partir de 2027 (art. 126, ADCT), exceto para produtos que concorrem com industrializados da Zona Franca de Manaus, que o mantêm.</div>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:14px;display:none;" id="wrap-pv-simples">
+          <div class="field">
+            <label>DAS — alíquota efetiva do Simples (%)</label>
+            <input type="number" id="pv-das" value="6" step="0.1" min="0" max="35">
+          </div>
+          <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end;">
+            <button type="button" class="btn" onclick="puxarAliquotaComparativo()">↺ Usar alíquota do Comparativo de Regimes</button>
+            <div class="hint" id="pv-das-hint">Alíquota efetiva calculada no Comparativo de Regimes (Simples Único, Anexo único) — recalcule lá primeiro se os dados do cliente mudarem.</div>
+          </div>
+        </div>
         <div class="grid2" style="margin-top:14px;">
-          <div class="field"><label>Tributos sobre a venda hoje — total (ICMS+ISS+PIS+COFINS)</label><div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;margin-top:9px;" id="pv-trib-atual-total">—</div></div>
+          <div class="field"><label>Tributos sobre a venda hoje — total</label><div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;margin-top:9px;" id="pv-trib-atual-total">—</div></div>
           <div class="field"><label>Alíquota CBS+IBS aplicável (%)</label><input type="number" id="pv-trib-novo" value="26.5" step="0.1"></div>
         </div>
-        <div class="note" style="margin-top:10px;">ICMS e ISS normalmente não coexistem na mesma operação (mercadoria × serviço, LC 87/1996 × LC 116/2003) — preencha só o que se aplica à atividade do cliente. PIS 0,65% e COFINS 3% já vêm com a alíquota cumulativa padrão (Lei 9.718/1998); ajuste se o cliente apurar pelo regime não cumulativo (1,65%/7,6%).</div>
+        <div class="note" style="margin-top:10px;" id="pv-nota-presumido">ICMS e ISS normalmente não coexistem na mesma operação (mercadoria × serviço, LC 87/1996 × LC 116/2003) — preencha só o que se aplica à atividade do cliente. PIS 0,65% e COFINS 3% já vêm com a alíquota cumulativa padrão (Lei 9.718/1998); ajuste se o cliente apurar pelo regime não cumulativo (1,65%/7,6%).</div>
 
         <div class="kpi-row" style="margin-top:16px;">
           <div class="kpi"><div class="l">Preço final — hoje (por dentro)</div><div class="v" id="pv-preco-atual">—</div><div class="d" id="pv-trib-emb-atual">—</div></div>
@@ -993,6 +1027,24 @@ function salvarCliente(){
 const brl = v => v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const pct = v => v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:2})+'%';
 
+/* ---------- campos monetários (R$) — exibidos como 7.750,00 em vez do formato nativo do input number ---------- */
+function parseBRL(str){
+  if(typeof str === 'number') return isFinite(str) ? str : 0;
+  if(!str) return 0;
+  const limpo = String(str).trim().replace(/[R$\s]/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(',', '.');
+  const v = parseFloat(limpo);
+  return isFinite(v) ? v : 0;
+}
+function formatarBRLInput(num){
+  const v = isFinite(num) ? num : 0;
+  return v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function aplicarMascaraMoeda(el){
+  el.addEventListener('blur', ()=>{ el.value = formatarBRLInput(parseBRL(el.value)); });
+  el.addEventListener('focus', ()=>{ el.select(); });
+}
+document.querySelectorAll('input.money').forEach(aplicarMascaraMoeda);
+
 /* ---------- Simples Nacional tables (LC 123/2006, Anexos I-V, redação LC 155/2016) ---------- */
 const SIMPLES = {
   I:  [[180000,0.040,0],[360000,0.073,5940],[720000,0.095,13860],[1800000,0.107,22500],[3600000,0.143,87300],[4800000,0.190,378000]],
@@ -1059,7 +1111,7 @@ function atualizarRegraISS(){
   const aplicavel = (regraEfetiva==='contabilidade' || regraEfetiva==='locacao') && (anexo==='III' || anexo==='V');
   document.getElementById('wrap-pct-iss-partilha').style.display = aplicavel ? '' : 'none';
   if(aplicavel){
-    const rbt12 = parseFloat(document.getElementById('rbt12').value)||0;
+    const rbt12 = parseBRL(document.getElementById('rbt12').value);
     const sugestao = sugerirPctIssPartilha(rbt12, anexo);
     if(sugestao!=null) document.getElementById('pct-iss-partilha').value = sugestao;
   }
@@ -1081,8 +1133,8 @@ function simplesUnicoOuMisto(fat, rbt12){
   }
   const anexoA = document.getElementById('anexo-a').value;
   const anexoB = document.getElementById('anexo-b').value;
-  const fatA = parseFloat(document.getElementById('anexo-a-valor').value)||0;
-  const fatB = parseFloat(document.getElementById('anexo-b-valor').value)||0;
+  const fatA = parseBRL(document.getElementById('anexo-a-valor').value);
+  const fatB = parseBRL(document.getElementById('anexo-b-valor').value);
   const totalSU = fatA*aliqEfetivaSimples(rbt12, anexoA) + fatB*aliqEfetivaSimples(rbt12, anexoB);
   return { aliqEf: fat>0 ? totalSU/fat : 0, totalSU };
 }
@@ -1094,9 +1146,9 @@ document.getElementById('regime').addEventListener('change', calcular);
 });
 function sincronizarFaturamentoMisto(){
   if(document.getElementById('anexo-modo').value!=='misto') return;
-  const a = parseFloat(document.getElementById('anexo-a-valor').value)||0;
-  const b = parseFloat(document.getElementById('anexo-b-valor').value)||0;
-  document.getElementById('faturamento').value = a+b;
+  const a = parseBRL(document.getElementById('anexo-a-valor').value);
+  const b = parseBRL(document.getElementById('anexo-b-valor').value);
+  document.getElementById('faturamento').value = formatarBRLInput(a+b);
 }
 ['anexo-a-valor','anexo-b-valor'].forEach(id=>{
   document.getElementById(id).addEventListener('input', ()=>{ sincronizarFaturamentoMisto(); calcular(); });
@@ -1130,8 +1182,8 @@ const REGIME_META = {
 
 function calcular(){
   const regimeAtual = document.getElementById('regime').value;
-  const fat = parseFloat(document.getElementById('faturamento').value)||0;
-  const rbt12 = parseFloat(document.getElementById('rbt12').value)||0;
+  const fat = parseBRL(document.getElementById('faturamento').value);
+  const rbt12 = parseBRL(document.getElementById('rbt12').value);
   const anexo = document.getElementById('anexo').value;
   const ativ = document.getElementById('atividade').value;
   const margemPct = (parseFloat(document.getElementById('margem').value)||0)/100;
@@ -1148,11 +1200,11 @@ function calcular(){
   const aliqReformaEfetiva = aliqReforma*redutor;
 
   /* ---- Despesas com direito a crédito de IBS/CBS ---- */
-  const despEnergia = parseFloat(document.getElementById('desp-energia').value)||0;
-  const despAluguel = parseFloat(document.getElementById('desp-aluguel').value)||0;
-  const despServicos = parseFloat(document.getElementById('desp-servicos').value)||0;
-  const despTelecom = parseFloat(document.getElementById('desp-telecom').value)||0;
-  const despOutras = parseFloat(document.getElementById('desp-outras').value)||0;
+  const despEnergia = parseBRL(document.getElementById('desp-energia').value);
+  const despAluguel = parseBRL(document.getElementById('desp-aluguel').value);
+  const despServicos = parseBRL(document.getElementById('desp-servicos').value);
+  const despTelecom = parseBRL(document.getElementById('desp-telecom').value);
+  const despOutras = parseBRL(document.getElementById('desp-outras').value);
   const despesasCreditaveis = despEnergia+despAluguel+despServicos+despTelecom+despOutras;
   document.getElementById('desp-total').textContent = brl(despesasCreditaveis);
 
@@ -1163,8 +1215,8 @@ function calcular(){
   if(anexoMisto){
     const anexoA = document.getElementById('anexo-a').value;
     const anexoB = document.getElementById('anexo-b').value;
-    const fatA = parseFloat(document.getElementById('anexo-a-valor').value)||0;
-    const fatB = parseFloat(document.getElementById('anexo-b-valor').value)||0;
+    const fatA = parseBRL(document.getElementById('anexo-a-valor').value);
+    const fatB = parseBRL(document.getElementById('anexo-b-valor').value);
     const aliqEfA = aliqEfetivaSimples(rbt12, anexoA);
     const aliqEfB = aliqEfetivaSimples(rbt12, anexoB);
     const dasA = fatA*aliqEfA, dasB = fatB*aliqEfB;
@@ -1286,6 +1338,7 @@ function calcular(){
   memLR.push(linhaMemoria('Total de encargos sobre a folha (CPP + RAT + Terceiros)', encargosFolha));
 
   document.getElementById('mem-su').innerHTML = memSU.join('');
+  document.getElementById('mem-su').dataset.aliqEfPct = (aliqEf*100).toFixed(4);
   document.getElementById('mem-sh').innerHTML = memSH.join('');
   document.getElementById('mem-lp').innerHTML = memLP.join('');
   document.getElementById('mem-lr').innerHTML = memLR.join('');
@@ -1449,7 +1502,7 @@ const TRANSICAO_ANOS = [
   {ano:2033, pisCofinsAtivo:0, icmsIssFactor:0,   cbsAtivo:1, ibsRamp:1}
 ];
 function calcularTrajetoria(){
-  const fat = parseFloat(document.getElementById('faturamento').value)||0;
+  const fat = parseBRL(document.getElementById('faturamento').value);
   const ativ = document.getElementById('atividade').value;
   const margemPct = (parseFloat(document.getElementById('margem').value)||0)/100;
   const insumosPct = (parseFloat(document.getElementById('insumos').value)||0)/100;
@@ -1461,14 +1514,14 @@ function calcularTrajetoria(){
   const cbsFracao = (parseFloat(document.getElementById('cbsfracao').value)||0)/100;
   const aliqCBS = aliqReforma*redutor*cbsFracao;
   const aliqIBS = aliqReforma*redutor*(1-cbsFracao);
-  const rbt12 = parseFloat(document.getElementById('rbt12').value)||0;
+  const rbt12 = parseBRL(document.getElementById('rbt12').value);
   const percEmbutidoPct = (parseFloat(document.getElementById('percembutido').value)||0)/100;
 
-  const despEnergia = parseFloat(document.getElementById('desp-energia').value)||0;
-  const despAluguel = parseFloat(document.getElementById('desp-aluguel').value)||0;
-  const despServicos = parseFloat(document.getElementById('desp-servicos').value)||0;
-  const despTelecom = parseFloat(document.getElementById('desp-telecom').value)||0;
-  const despOutras = parseFloat(document.getElementById('desp-outras').value)||0;
+  const despEnergia = parseBRL(document.getElementById('desp-energia').value);
+  const despAluguel = parseBRL(document.getElementById('desp-aluguel').value);
+  const despServicos = parseBRL(document.getElementById('desp-servicos').value);
+  const despTelecom = parseBRL(document.getElementById('desp-telecom').value);
+  const despOutras = parseBRL(document.getElementById('desp-outras').value);
   const despesasCreditaveis = despEnergia+despAluguel+despServicos+despTelecom+despOutras;
 
   const folhaPct = (parseFloat(document.getElementById('folha').value)||0)/100;
@@ -1585,36 +1638,75 @@ function carregarSimulacao(){
 }
 
 /* ---------- formação de preço ---------- */
+function puxarAliquotaComparativo(){
+  const aliqEfPct = document.getElementById('mem-su').dataset.aliqEfPct;
+  const hint = document.getElementById('pv-das-hint');
+  if(aliqEfPct==null){
+    hint.innerHTML = '<span style="color:var(--critical)">Abra a aba "Comparativo de regimes" ao menos uma vez nesta sessão para calcular a alíquota primeiro.</span>';
+    return;
+  }
+  document.getElementById('pv-das').value = parseFloat(aliqEfPct).toFixed(2);
+  hint.textContent = 'Alíquota efetiva calculada no Comparativo de Regimes (Simples Único, Anexo único) — recalcule lá primeiro se os dados do cliente mudarem.';
+  calcularPreco();
+}
+function atualizarModoPrecificacao(){
+  const simples = document.getElementById('pv-regime').value==='simples';
+  document.getElementById('wrap-pv-presumido').style.display = simples ? 'none' : '';
+  document.getElementById('wrap-pv-ipi').style.display = simples ? 'none' : '';
+  document.getElementById('wrap-pv-simples').style.display = simples ? '' : 'none';
+  document.getElementById('pv-nota-presumido').style.display = simples ? 'none' : '';
+  calcularPreco();
+}
+document.getElementById('pv-regime').addEventListener('change', atualizarModoPrecificacao);
 function calcularPreco(){
-  const custo = parseFloat(document.getElementById('pv-custo').value)||0;
+  const custo = parseBRL(document.getElementById('pv-custo').value);
   const desp = (parseFloat(document.getElementById('pv-desp').value)||0)/100;
   const margem = (parseFloat(document.getElementById('pv-margem').value)||0)/100;
-  const icms = parseFloat(document.getElementById('pv-icms').value)||0;
-  const iss = parseFloat(document.getElementById('pv-iss').value)||0;
-  const pis = parseFloat(document.getElementById('pv-pis').value)||0;
-  const cofins = parseFloat(document.getElementById('pv-cofins').value)||0;
-  const tribAtualPct = icms+iss+pis+cofins;
-  document.getElementById('pv-trib-atual-total').textContent = pct(tribAtualPct);
+  const regimeSimples = document.getElementById('pv-regime').value==='simples';
+
+  let tribAtualPct, ipiPct = 0, ipiNoNovo = false;
+  if(regimeSimples){
+    tribAtualPct = parseFloat(document.getElementById('pv-das').value)||0;
+  } else {
+    const icms = parseFloat(document.getElementById('pv-icms').value)||0;
+    const iss = parseFloat(document.getElementById('pv-iss').value)||0;
+    const pis = parseFloat(document.getElementById('pv-pis').value)||0;
+    const cofins = parseFloat(document.getElementById('pv-cofins').value)||0;
+    tribAtualPct = icms+iss+pis+cofins;
+    ipiPct = (parseFloat(document.getElementById('pv-ipi').value)||0)/100;
+    ipiNoNovo = document.getElementById('pv-ipi-novo').checked;
+  }
+  document.getElementById('pv-trib-atual-total').textContent = pct(tribAtualPct) + (regimeSimples ? ' (DAS)' : '') + (ipiPct>0 ? ` + IPI ${pct(ipiPct*100)} por fora` : '');
   const tribAtual = tribAtualPct/100;
   const tribNovo = (parseFloat(document.getElementById('pv-trib-novo').value)||0)/100;
 
+  /* IPI (Lei 4.502/1964; RIPI, art. 190) não integra sua própria base — é calculado "por fora", sobre o
+     preço já formado (com ICMS/ISS/PIS/COFINS ou DAS embutidos), e somado ao preço final. */
   const divisorAtual = 1 - desp - tribAtual - margem;
-  const precoAtual = divisorAtual>0 ? custo/divisorAtual : NaN;
-  const tribEmbAtual = precoAtual*tribAtual;
+  const precoAtualSemIPI = divisorAtual>0 ? custo/divisorAtual : NaN;
+  const precoAtual = precoAtualSemIPI*(1+ipiPct);
+  const tribEmbAtual = precoAtualSemIPI*tribAtual;
+  const ipiValorAtual = precoAtual - precoAtualSemIPI;
 
   const divisorNovo = 1 - desp - margem;
   const precoLiquidoNovo = divisorNovo>0 ? custo/divisorNovo : NaN;
-  const precoNovo = precoLiquidoNovo*(1+tribNovo);
-  const tribEmbNovo = precoNovo - precoLiquidoNovo;
+  const precoNovoSemCBSIBS = ipiNoNovo ? precoLiquidoNovo*(1+ipiPct) : precoLiquidoNovo;
+  const precoNovo = precoNovoSemCBSIBS*(1+tribNovo);
+  const tribEmbNovo = precoNovo - precoNovoSemCBSIBS;
+  const ipiValorNovo = precoNovoSemCBSIBS - precoLiquidoNovo;
 
   document.getElementById('pv-preco-atual').textContent = isFinite(precoAtual) ? brl(precoAtual) : '—';
-  document.getElementById('pv-trib-emb-atual').textContent = isFinite(tribEmbAtual) ? 'tributo embutido: '+brl(tribEmbAtual) : 'parâmetros inválidos';
+  document.getElementById('pv-trib-emb-atual').textContent = isFinite(tribEmbAtual)
+    ? `tributo embutido: ${brl(tribEmbAtual)}` + (ipiValorAtual>0 ? ` + IPI destacado: ${brl(ipiValorAtual)}` : '')
+    : 'parâmetros inválidos';
   document.getElementById('pv-preco-novo').textContent = isFinite(precoNovo) ? brl(precoNovo) : '—';
-  document.getElementById('pv-trib-emb-novo').textContent = isFinite(tribEmbNovo) ? 'tributo somado: '+brl(tribEmbNovo) : 'parâmetros inválidos';
+  document.getElementById('pv-trib-emb-novo').textContent = isFinite(tribEmbNovo)
+    ? `tributo somado: ${brl(tribEmbNovo)}` + (ipiValorNovo>0 ? ` + IPI destacado: ${brl(ipiValorNovo)}` : '')
+    : 'parâmetros inválidos';
   const dif = precoAtual-precoNovo;
   document.getElementById('pv-dif').textContent = isFinite(dif) ? (dif>=0?'-':'+')+brl(Math.abs(dif)) : '—';
 }
-['pv-custo','pv-desp','pv-margem','pv-icms','pv-iss','pv-pis','pv-cofins','pv-trib-novo'].forEach(id=>{
+['pv-custo','pv-desp','pv-margem','pv-icms','pv-iss','pv-pis','pv-cofins','pv-ipi','pv-ipi-novo','pv-das','pv-trib-novo'].forEach(id=>{
   document.getElementById(id).addEventListener('input', calcularPreco);
 });
 
@@ -3656,9 +3748,9 @@ function processarPGDASD(){
   const status = document.getElementById('pgdasd-status');
   if(!texto || !texto.trim()){ status.style.display='none'; return; }
   const { rbt12, fs12, fatorR, fs12Estimado, faturamento } = parsePGDASD(texto);
-  document.getElementById('pgdasd-faturamento').value = faturamento!==null ? faturamento.toFixed(2) : '';
-  document.getElementById('pgdasd-rbt12').value = rbt12!==null ? rbt12.toFixed(2) : '';
-  document.getElementById('pgdasd-fs12').value = fs12!==null ? fs12.toFixed(2) : '';
+  document.getElementById('pgdasd-faturamento').value = faturamento!==null ? formatarBRLInput(faturamento) : '';
+  document.getElementById('pgdasd-rbt12').value = rbt12!==null ? formatarBRLInput(rbt12) : '';
+  document.getElementById('pgdasd-fs12').value = fs12!==null ? formatarBRLInput(fs12) : '';
   status.style.display = '';
   if(rbt12===null && fs12===null && fatorR===null && faturamento===null){
     status.innerHTML = '<span style="color:var(--critical)">Não identifiquei Faturamento, RBT12, FS12 nem Fator R automaticamente neste texto. Confira se colou o extrato/relatório inteiro (Ctrl+A no leitor de PDF) ou informe os valores manualmente nos campos abaixo.</span>';
@@ -3673,8 +3765,8 @@ function processarPGDASD(){
   atualizarFatorRPGDASD();
 }
 function atualizarFatorRPGDASD(){
-  const rbt12 = parseFloat(document.getElementById('pgdasd-rbt12').value)||0;
-  const fs12 = parseFloat(document.getElementById('pgdasd-fs12').value)||0;
+  const rbt12 = parseBRL(document.getElementById('pgdasd-rbt12').value);
+  const fs12 = parseBRL(document.getElementById('pgdasd-fs12').value);
   const el = document.getElementById('pgdasd-fatorr');
   if(rbt12<=0){ el.textContent = '—'; return; }
   const fatorR = fs12/rbt12*100;
@@ -3683,11 +3775,11 @@ function atualizarFatorRPGDASD(){
     : ' <span class="pill warn" style="margin-left:4px;">&lt; 28% — Anexo V</span>');
 }
 function aplicarPGDASD(){
-  const faturamento = parseFloat(document.getElementById('pgdasd-faturamento').value)||0;
-  const rbt12 = parseFloat(document.getElementById('pgdasd-rbt12').value)||0;
-  const fs12 = parseFloat(document.getElementById('pgdasd-fs12').value)||0;
-  if(faturamento>0) document.getElementById('faturamento').value = faturamento.toFixed(2);
-  if(rbt12>0) document.getElementById('rbt12').value = rbt12.toFixed(2);
+  const faturamento = parseBRL(document.getElementById('pgdasd-faturamento').value);
+  const rbt12 = parseBRL(document.getElementById('pgdasd-rbt12').value);
+  const fs12 = parseBRL(document.getElementById('pgdasd-fs12').value);
+  if(faturamento>0) document.getElementById('faturamento').value = formatarBRLInput(faturamento);
+  if(rbt12>0) document.getElementById('rbt12').value = formatarBRLInput(rbt12);
   if(rbt12>0) document.getElementById('folha').value = (fs12/rbt12*100).toFixed(1);
   calcular();
   const btnComparativo = document.querySelector('.navbtn[data-panel="comparativo"]');
@@ -3911,18 +4003,18 @@ function aplicarImportacao(){
   const compras = dreCMV!=null ? dreCMV : entradaNFe/meses;
   const icmsIssPct = faturamento>0 ? (icmsSaida+issPrestacao)/meses/faturamento*100 : parseFloat(document.getElementById('icmsiss').value)||0;
   const insumosPct = faturamento>0 ? compras/faturamento*100 : parseFloat(document.getElementById('insumos').value)||0;
-  const servicosTomados = dreServicos!=null ? dreServicos : (tomadaNFSe>0 ? tomadaNFSe/meses : parseFloat(document.getElementById('desp-servicos').value)||0);
+  const servicosTomados = dreServicos!=null ? dreServicos : (tomadaNFSe>0 ? tomadaNFSe/meses : parseBRL(document.getElementById('desp-servicos').value));
   const folhaPct = dreFolha!=null && faturamento>0 ? dreFolha/faturamento*100 : parseFloat(document.getElementById('folha').value)||0;
 
-  document.getElementById('faturamento').value = Math.round(faturamento);
+  document.getElementById('faturamento').value = formatarBRLInput(faturamento);
   document.getElementById('insumos').value = insumosPct.toFixed(1);
   document.getElementById('icmsiss').value = icmsIssPct.toFixed(2);
   document.getElementById('folha').value = folhaPct.toFixed(1);
-  if(dreEnergia!=null) document.getElementById('desp-energia').value = Math.round(dreEnergia);
-  if(dreAluguel!=null) document.getElementById('desp-aluguel').value = Math.round(dreAluguel);
-  document.getElementById('desp-servicos').value = Math.round(servicosTomados);
-  if(dreTelecom!=null) document.getElementById('desp-telecom').value = Math.round(dreTelecom);
-  if(dreOutras!=null) document.getElementById('desp-outras').value = Math.round(dreOutras);
+  if(dreEnergia!=null) document.getElementById('desp-energia').value = formatarBRLInput(dreEnergia);
+  if(dreAluguel!=null) document.getElementById('desp-aluguel').value = formatarBRLInput(dreAluguel);
+  document.getElementById('desp-servicos').value = formatarBRLInput(servicosTomados);
+  if(dreTelecom!=null) document.getElementById('desp-telecom').value = formatarBRLInput(dreTelecom);
+  if(dreOutras!=null) document.getElementById('desp-outras').value = formatarBRLInput(dreOutras);
 
   calcular();
   document.querySelector('.navbtn[data-panel="comparativo"]').click();
@@ -3931,5 +4023,5 @@ function aplicarImportacao(){
 /* ---------- init ---------- */
 atualizarRegraISS();
 calcular();
-calcularPreco();
+atualizarModoPrecificacao();
 </script>
