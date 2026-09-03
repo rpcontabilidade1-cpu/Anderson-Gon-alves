@@ -573,15 +573,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
 
       <div class="card">
         <div class="card-head">
-          <div><h2>Projeção ano a ano — 2026 a 2033</h2><p class="desc" style="margin-top:4px;">Recalcula a carga tributária de cada regime em cada exercício da transição, aplicando o calendário do art. 128 do ADCT sobre os mesmos dados do Comparativo de Regimes.</p></div>
-        </div>
-
-        <div class="grid3">
-          <div class="field">
-            <label>Parcela da alíquota de referência correspondente à CBS (%)</label>
-            <input type="number" id="cbsfracao" value="33" min="0" max="100" step="1">
-            <div class="hint">Editável — a LC 214/2025 não fixa publicamente uma proporção CBS/IBS; ~1/3 CBS e ~2/3 IBS é uma aproximação com base na participação histórica de PIS/COFINS vs. ICMS/ISS na arrecadação. O restante (100% − este valor) é tratado como IBS.</div>
-          </div>
+          <div><h2>Projeção ano a ano — 2026 a 2033</h2><p class="desc" style="margin-top:4px;">Recalcula a carga tributária de cada regime em cada exercício da transição, aplicando o calendário do art. 128 do ADCT sobre os mesmos dados do Comparativo de Regimes. Usa a mesma "Parcela CBS/IBS" definida em Parâmetros da reforma, acima.</p></div>
         </div>
 
         <div style="margin-top:18px;">
@@ -764,10 +756,31 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
         </div>
         <div class="grid3">
           <div class="field">
+            <label>Ano de referência da simulação</label>
+            <select id="ano-referencia">
+              <option value="2026">2026 — fase de teste (CBS 0,9% + IBS 0,1%, compensáveis)</option>
+              <option value="2027" selected>2027 — CBS plena; IBS ainda em teste (só CBS é calculado)</option>
+              <option value="2028">2028 — igual a 2027 (consolidação)</option>
+              <option value="2029">2029 — IBS entra em 10% da alíquota; ICMS/ISS caem 10%</option>
+              <option value="2030">2030 — IBS em 20%; ICMS/ISS em 80%</option>
+              <option value="2031">2031 — IBS em 30%; ICMS/ISS em 70%</option>
+              <option value="2032">2032 — IBS em 40%; ICMS/ISS em 60%</option>
+              <option value="2033">2033 — modelo definitivo (CBS + IBS plenos, ICMS/ISS extintos)</option>
+            </select>
+            <div class="hint">Calendário constitucional (art. 125 a 130, ADCT, redação EC 132/2023) — controla quanto do IBS/CBS "à parte" do Regime Híbrido e da Projeção ano a ano é efetivamente calculado em cada exercício.</div>
+          </div>
+          <div class="field">
             <label>Alíquota de referência combinada — CBS + IBS (%)</label>
             <input type="number" id="aliqreforma" value="26.5" min="0" max="45" step="0.1">
-            <div class="hint">Editável. Ainda não fixada em definitivo — será calculada e publicada anualmente pelo Senado Federal (art. 156-A, §1º, XI, CF c/c art. 12 e art. 332 da LC 214/2025), com base na neutralidade de arrecadação. Valor de referência amplamente citado em notas técnicas: ≈ 26,5%.</div>
+            <div class="hint">Editável. Ainda não fixada em definitivo — será calculada e publicada anualmente pelo Senado Federal (art. 156-A, §1º, XI, CF c/c art. 12 e art. 332 da LC 214/2025), com base na neutralidade de arrecadação. Valor de referência amplamente citado em notas técnicas: ≈ 26,5%. Dividida entre CBS e IBS pelo campo abaixo e escalonada pelo Ano de referência.</div>
           </div>
+          <div class="field">
+            <label>Parcela da alíquota de referência correspondente à CBS (%)</label>
+            <input type="number" id="cbsfracao" value="33" min="0" max="100" step="1">
+            <div class="hint">Editável — a LC 214/2025 não fixa publicamente uma proporção CBS/IBS; ~1/3 CBS e ~2/3 IBS é uma aproximação com base na participação histórica de PIS/COFINS vs. ICMS/ISS na arrecadação. O restante (100% − este valor) é tratado como IBS. Usado aqui e na Projeção ano a ano.</div>
+          </div>
+        </div>
+        <div class="grid2" style="margin-top:14px;">
           <div class="field">
             <label>Créditos amplos aplicáveis sobre insumos (%)</label>
             <input type="number" id="credaplic" value="100" min="0" max="100" step="1">
@@ -1141,7 +1154,7 @@ function simplesUnicoOuMisto(fat, rbt12){
 
 /* ---------- regime highlight + inputs ---------- */
 document.getElementById('regime').addEventListener('change', calcular);
-['anexo','anexo-a','anexo-b','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','rat','terceiros','aliqreforma','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'].forEach(id=>{
+['anexo','anexo-a','anexo-b','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','rat','terceiros','ano-referencia','aliqreforma','cbsfracao','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'].forEach(id=>{
   document.getElementById(id).addEventListener('input', calcular);
 });
 function sincronizarFaturamentoMisto(){
@@ -1261,7 +1274,18 @@ function calcular(){
   const dasReduzido = fat*(aliqEf - componenteEmbutido);
   const baseCredHibrido = (fat*insumosPct + despesasCreditaveis)*credAplic;
   const baseTribHibrido = Math.max(fat - baseCredHibrido, 0);
-  const ibsCbsHibrido = regraPropria ? NaN : baseTribHibrido*aliqReformaEfetiva;
+
+  /* ---- Calendário constitucional (art. 125 a 130, ADCT, EC 132/2023) — em 2026 CBS e IBS ainda estão em
+     fase de teste (não calculados aqui); 2027-2028 só a CBS é cobrada em alíquota plena, o IBS permanece a
+     0; a partir de 2029 o IBS entra em vigor e sobe 10 p.p. da fração de participação por ano até 2033. */
+  const anoSel = parseInt(document.getElementById('ano-referencia').value, 10) || 2027;
+  const fatorAno = TRANSICAO_ANOS.find(t=>t.ano===anoSel) || TRANSICAO_ANOS[TRANSICAO_ANOS.length-1];
+  const cbsFracaoGlobal = (parseFloat(document.getElementById('cbsfracao').value)||0)/100;
+  const aliqCBSAno = aliqReformaEfetiva*cbsFracaoGlobal*fatorAno.cbsAtivo;
+  const aliqIBSAno = aliqReformaEfetiva*(1-cbsFracaoGlobal)*fatorAno.ibsRamp;
+  const aliqReformaAnoEfetiva = aliqCBSAno+aliqIBSAno;
+
+  const ibsCbsHibrido = regraPropria ? NaN : baseTribHibrido*aliqReformaAnoEfetiva;
   const totalSH = regraPropria ? dasReduzido : dasReduzido + ibsCbsHibrido;
   const memSH = [];
   memSH.push(linhaTexto('Componente IBS/CBS embutido = Alíq. efetiva × % do Anexo (ICMS/ISS/PIS/COFINS)', pct(componenteEmbutido*100)));
@@ -1273,7 +1297,10 @@ function calcular(){
   if(regraPropria){
     memSH.push(`<tr><td colspan="2" style="color:var(--warn)">Classificação = regime específico próprio — alíquota não percentual, não simulada neste modelo. Consulte as regras setoriais da LC 214/2025.</td></tr>`);
   } else {
-    memSH.push(linhaMemoria(`IBS/CBS apurado à parte (Base × ${pct(aliqReformaEfetiva*100)}${redutor<1?` — alíquota já reduzida (fator ${pct(redutor*100)})`:''})`, ibsCbsHibrido));
+    memSH.push(linhaTexto('Ano de referência da simulação (art. 125-130, ADCT)', `${anoSel} — CBS ${fatorAno.cbsAtivo?'plena':'em teste, não calculada'}; IBS ${fatorAno.ibsRamp>0?`em ${pct(fatorAno.ibsRamp*100)} da participação`:'em teste, não calculado'}`));
+    memSH.push(linhaTexto(`CBS apurada à parte (Base × ${pct(aliqCBSAno*100)})`, brl(baseTribHibrido*aliqCBSAno)));
+    memSH.push(linhaTexto(`IBS apurado à parte (Base × ${pct(aliqIBSAno*100)})`, brl(baseTribHibrido*aliqIBSAno)));
+    memSH.push(linhaMemoria(`IBS/CBS apurado à parte, total (Base × ${pct(aliqReformaAnoEfetiva*100)}${redutor<1?` — alíquota já reduzida (fator ${pct(redutor*100)})`:''})`, ibsCbsHibrido));
     memSH.push(linhaMemoria('Carga total Híbrido = DAS reduzido + IBS/CBS à parte', totalSH));
   }
 
@@ -1381,13 +1408,13 @@ function calcular(){
 
   /* ---- Impacto no crédito do comprador B2B (Regime Híbrido) ---- */
   const creditoUnicoComprador = fat*b2bPct*componenteEmbutido;
-  const creditoHibridoComprador = regraPropria ? NaN : fat*b2bPct*aliqReformaEfetiva;
+  const creditoHibridoComprador = regraPropria ? NaN : fat*b2bPct*aliqReformaAnoEfetiva;
   const ganhoCredito = creditoHibridoComprador - creditoUnicoComprador;
   document.getElementById('mem-b2b').innerHTML = regraPropria ?
     `<b>Impacto no crédito do comprador B2B:</b> não simulado — a classificação selecionada é regime específico próprio, sem alíquota percentual padrão. Consulte as regras setoriais da LC 214/2025.` :
-    `<b>Impacto no crédito do comprador B2B (${pct(b2bPct*100)} da receita vendida a PJ do regime regular):</b><br>
+    `<b>Impacto no crédito do comprador B2B (${pct(b2bPct*100)} da receita vendida a PJ do regime regular) — ano ${anoSel}:</b><br>
     Crédito hoje gerado ao comprador (Regime Único) = Receita B2B × componente embutido (${pct(componenteEmbutido*100)}) = <span class="num">${brl(creditoUnicoComprador)}</span>/mês.<br>
-    Crédito pleno no Regime Híbrido = Receita B2B × alíquota efetiva (${pct(aliqReformaEfetiva*100)}) = <span class="num">${brl(creditoHibridoComprador)}</span>/mês.<br>
+    Crédito pleno no Regime Híbrido = Receita B2B × alíquota efetiva do ano (${pct(aliqReformaAnoEfetiva*100)}) = <span class="num">${brl(creditoHibridoComprador)}</span>/mês.<br>
     <b>Ganho de competitividade ao comprador ≈ ${brl(ganhoCredito)}/mês</b> — argumento comercial para a migração, ainda que a carga própria do prestador no Híbrido seja ${totalSH>totalSU?'maior':'menor'} que no Regime Único (LC 214/2025, art. 41, §3º; Resolução CGSN 183/2025). Lembrar: pedido de ressarcimento de crédito sobre bens de capital no Híbrido trava o retorno ao Regime Único por 2 anos.`;
 
   montarResumoImpressao(resultados, regimeAtual, fat, rbt12);
@@ -1622,7 +1649,7 @@ document.getElementById('cbsfracao').addEventListener('input', atualizarTrajetor
 
 function salvarSimulacao(){
   try{
-    const ids = ['regime','anexo-modo','anexo','anexo-a','anexo-b','anexo-a-valor','anexo-b-valor','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','rat','terceiros','aliqreforma','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'];
+    const ids = ['regime','anexo-modo','anexo','anexo-a','anexo-b','anexo-a-valor','anexo-b-valor','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','rat','terceiros','ano-referencia','aliqreforma','cbsfracao','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'];
     const data = {}; ids.forEach(id=> data[id]=document.getElementById(id).value);
     localStorage.setItem('dossie-simulacao', JSON.stringify(data));
   }catch(e){}
