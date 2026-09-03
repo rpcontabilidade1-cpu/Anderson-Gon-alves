@@ -363,9 +363,9 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           <h2>NF-e — entrada e saída (modelo 55)</h2>
           <span class="pill accent" id="nfe-count">0 arquivo(s)</span>
         </div>
-        <p class="desc" style="margin-top:-4px;">Selecione um ou vários XML de NF-e. A classificação entrada/saída usa o CFOP do item e, quando disponível, o CNPJ do cliente informado na Visão Geral.</p>
+        <p class="desc" style="margin-top:-4px;">Selecione um ou vários XML de NF-e — ou um ou mais arquivos .zip contendo os XML (todo .xml dentro do zip, em qualquer subpasta, é lido automaticamente). A classificação entrada/saída usa o CFOP do item e, quando disponível, o CNPJ do cliente informado na Visão Geral.</p>
         <div class="btnrow" style="margin-top:10px;">
-          <input type="file" id="file-nfe" multiple accept=".xml" style="max-width:360px;">
+          <input type="file" id="file-nfe" multiple accept=".xml,.zip" style="max-width:360px;">
           <button class="btn primary" onclick="processarNFe()">Processar NF-e</button>
         </div>
         <div class="table-wrap" style="margin-top:14px;">
@@ -382,9 +382,9 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           <h2>NFS-e Padrão Nacional — prestação e tomada de serviços</h2>
           <span class="pill accent" id="nfse-count">0 arquivo(s)</span>
         </div>
-        <p class="desc" style="margin-top:-4px;">Aceita o schema unificado (DPS/NFSe) adotado nacionalmente. NFS-e em layout municipal legado pode não ser reconhecida — o arquivo aparecerá marcado como "não reconhecido".</p>
+        <p class="desc" style="margin-top:-4px;">Aceita o schema unificado (DPS/NFSe) adotado nacionalmente — em XML avulso ou em um ou mais arquivos .zip contendo os XML. NFS-e em layout municipal legado pode não ser reconhecida — o arquivo aparecerá marcado como "não reconhecido".</p>
         <div class="btnrow" style="margin-top:10px;">
-          <input type="file" id="file-nfse" multiple accept=".xml" style="max-width:360px;">
+          <input type="file" id="file-nfse" multiple accept=".xml,.zip" style="max-width:360px;">
           <button class="btn primary" onclick="processarNFSe()">Processar NFS-e</button>
         </div>
         <div class="table-wrap" style="margin-top:14px;">
@@ -799,6 +799,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
 <div id="print-portal"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 document.getElementById('hoje').textContent = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
 
@@ -2757,6 +2758,42 @@ function readFileAsArrayBuffer(file){
   });
 }
 
+/* Aceita XML avulso ou .zip contendo XML (NF-e/NFS-e costumam ser baixadas em lote pelo portal
+   da SEFAZ/prefeitura já compactadas). Descompacta no próprio navegador com JSZip — nenhum arquivo
+   sai da máquina do usuário — e devolve uma lista uniforme {name, text} para o parser tratar igual,
+   seja a origem um .xml solto ou uma entrada dentro do .zip (inclusive em subpastas). */
+async function expandirParaXml(fileList){
+  const saida = [];
+  for(const file of fileList){
+    if(/\.zip$/i.test(file.name)){
+      try{
+        const buf = await readFileAsArrayBuffer(file);
+        const zip = await JSZip.loadAsync(buf);
+        const entradas = Object.values(zip.files).filter(e => !e.dir && /\.xml$/i.test(e.name));
+        for(const entrada of entradas){
+          try{
+            const texto = await entrada.async('string');
+            saida.push({name: `${file.name} » ${entrada.name}`, text: texto});
+          }catch(e){
+            saida.push({name: `${file.name} » ${entrada.name}`, erro:true});
+          }
+        }
+        if(!entradas.length) saida.push({name: file.name, erro:true, motivoErro:'ZIP não contém nenhum arquivo .xml'});
+      }catch(e){
+        saida.push({name: file.name, erro:true, motivoErro:'Não foi possível abrir o .zip (arquivo corrompido ou protegido por senha)'});
+      }
+    } else {
+      try{
+        const texto = await readFileAsText(file);
+        saida.push({name: file.name, text: texto});
+      }catch(e){
+        saida.push({name: file.name, erro:true});
+      }
+    }
+  }
+  return saida;
+}
+
 /* cStat da NF-e (protNFe) — Manual de Orientação do Contribuinte NF-e.
    100 e 150 são os ÚNICOS status que mantêm a NF-e válida para efeitos fiscais
    (150 = autorizada fora do prazo de resposta do SLA, mas autorizada). Qualquer
@@ -2778,11 +2815,12 @@ async function processarNFe(){
   const cnpjCliente = clienteCNPJ();
   const brutos = [];
   const chavesCanceladasPorEvento = new Set();
-  for(const file of files){
+  const itens = await expandirParaXml(files);
+  for(const item of itens){
+    if(item.erro){ brutos.push({arquivo:item.name, erro:true}); continue; }
     try{
-      const text = await readFileAsText(file);
-      const doc = new DOMParser().parseFromString(text, 'text/xml');
-      if(doc.getElementsByTagName('parsererror').length){ brutos.push({arquivo:file.name, erro:true}); continue; }
+      const doc = new DOMParser().parseFromString(item.text, 'text/xml');
+      if(doc.getElementsByTagName('parsererror').length){ brutos.push({arquivo:item.name, erro:true}); continue; }
 
       /* Inutilização de numeração (ProcInutNFe/retInutNFe/infInut) — não é um evento vinculado a uma
          NF-e específica, e sim a confirmação de que uma faixa de números nunca foi emitida. Não deve
@@ -2796,7 +2834,7 @@ async function processarNFe(){
         const base = infInut || doc;
         const cStatInut = tagText(base,'cStat');
         brutos.push({
-          arquivo:file.name, inutilizacao:true,
+          arquivo:item.name, inutilizacao:true,
           serie: tagText(base,'serie'), nIni: tagText(base,'nNFIni'), nFin: tagText(base,'nNFFin'),
           ano: tagText(base,'ano'), cStatInut, homologada: cStatInut==='102'
         });
@@ -2808,7 +2846,7 @@ async function processarNFe(){
         const chNFeEvento = tagText(doc,'chNFe');
         const ehCancelamento = tpEvento==='110111' || tpEvento==='110112';
         if(ehCancelamento && chNFeEvento) chavesCanceladasPorEvento.add(chNFeEvento);
-        brutos.push({arquivo:file.name, evento:true, tipoEvento: ehCancelamento ? 'Cancelamento' : `Outro evento (tpEvento ${tpEvento})`, chave:chNFeEvento});
+        brutos.push({arquivo:item.name, evento:true, tipoEvento: ehCancelamento ? 'Cancelamento' : `Outro evento (tpEvento ${tpEvento})`, chave:chNFeEvento});
         continue;
       }
 
@@ -2831,8 +2869,8 @@ async function processarNFe(){
       if(cnpjCliente && emitCNPJ===cnpjCliente) tipo = 'Saída';
       else if(cnpjCliente && destCNPJ===cnpjCliente) tipo = 'Entrada';
       else if(cfop){ const d1=cfop.trim()[0]; if(['1','2','3'].includes(d1)) tipo='Entrada'; else if(['5','6','7'].includes(d1)) tipo='Saída'; }
-      brutos.push({arquivo:file.name, tipo, cfop, valor, icms, pis, cofins, chave, cStat, xMotivo});
-    }catch(e){ brutos.push({arquivo:file.name, erro:true}); }
+      brutos.push({arquivo:item.name, tipo, cfop, valor, icms, pis, cofins, chave, cStat, xMotivo});
+    }catch(e){ brutos.push({arquivo:item.name, erro:true}); }
   }
   nfeRows = brutos.map(r=>{
     if(r.erro || r.evento || r.inutilizacao) return r;
@@ -2893,11 +2931,12 @@ async function processarNFSe(){
   const cnpjCliente = clienteCNPJ();
   const brutos = [];
   const chavesCanceladasPorEvento = new Set();
-  for(const file of files){
+  const itens = await expandirParaXml(files);
+  for(const item of itens){
+    if(item.erro){ brutos.push({arquivo:item.name, erro:true}); continue; }
     try{
-      const text = await readFileAsText(file);
-      const doc = new DOMParser().parseFromString(text, 'text/xml');
-      if(doc.getElementsByTagName('parsererror').length){ brutos.push({arquivo:file.name, erro:true}); continue; }
+      const doc = new DOMParser().parseFromString(item.text, 'text/xml');
+      if(doc.getElementsByTagName('parsererror').length){ brutos.push({arquivo:item.name, erro:true}); continue; }
 
       const infPedReg = doc.getElementsByTagName('infPedReg')[0];
       if(infPedReg){
@@ -2906,11 +2945,11 @@ async function processarNFSe(){
         const tagInfo = !tagCancel && Object.keys(NFSE_EVENTOS_INFORMATIVOS).find(t=>infPedReg.getElementsByTagName(t).length>0);
         if(tagCancel){
           if(chNFSeEvento) chavesCanceladasPorEvento.add(chNFSeEvento);
-          brutos.push({arquivo:file.name, evento:true, tipoEvento:NFSE_EVENTOS_CANCELAM[tagCancel], chave:chNFSeEvento, cancelaOrigem:true});
+          brutos.push({arquivo:item.name, evento:true, tipoEvento:NFSE_EVENTOS_CANCELAM[tagCancel], chave:chNFSeEvento, cancelaOrigem:true});
         } else if(tagInfo){
-          brutos.push({arquivo:file.name, evento:true, tipoEvento:NFSE_EVENTOS_INFORMATIVOS[tagInfo], chave:chNFSeEvento, cancelaOrigem:false});
+          brutos.push({arquivo:item.name, evento:true, tipoEvento:NFSE_EVENTOS_INFORMATIVOS[tagInfo], chave:chNFSeEvento, cancelaOrigem:false});
         } else {
-          brutos.push({arquivo:file.name, evento:true, tipoEvento:'Evento NFS-e de tipo não mapeado neste sistema (confirmação/rejeição/manifestação)', chave:chNFSeEvento, cancelaOrigem:false});
+          brutos.push({arquivo:item.name, evento:true, tipoEvento:'Evento NFS-e de tipo não mapeado neste sistema (confirmação/rejeição/manifestação)', chave:chNFSeEvento, cancelaOrigem:false});
         }
         continue;
       }
@@ -2928,8 +2967,8 @@ async function processarNFSe(){
       let tipo = 'Indefinido';
       if(cnpjCliente && prestCNPJ===cnpjCliente) tipo = 'Prestação';
       else if(cnpjCliente && tomaCNPJ===cnpjCliente) tipo = 'Tomada';
-      brutos.push({arquivo:file.name, tipo, valor:vServ, iss:vISS, prest:prestCNPJ, toma:tomaCNPJ, naoReconhecido, chave});
-    }catch(e){ brutos.push({arquivo:file.name, erro:true}); }
+      brutos.push({arquivo:item.name, tipo, valor:vServ, iss:vISS, prest:prestCNPJ, toma:tomaCNPJ, naoReconhecido, chave});
+    }catch(e){ brutos.push({arquivo:item.name, erro:true}); }
   }
   nfseRows = brutos.map(r=>{
     if(r.erro || r.evento) return r;
