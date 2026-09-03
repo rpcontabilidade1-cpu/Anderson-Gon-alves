@@ -445,6 +445,39 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
 
       <div class="card">
         <div class="card-head">
+          <h2>PGDAS-D — RBT12 e Folha12 (Simples Nacional)</h2>
+        </div>
+        <p class="desc" style="margin-top:-4px;">Calcula a RBT12 (receita bruta acumulada nos 12 meses anteriores ao PA) e a FS12/Folha12 (folha de salários acumulada nos 12 meses, base do Fator R) a partir do Extrato do PGDAS-D. Não há leitor de PDF nativo neste ambiente: abra o extrato no e-CAC/Simples Nacional, copie o texto (Ctrl+A / Ctrl+C) e cole abaixo.</p>
+        <div class="field">
+          <label>Cole aqui o texto do Extrato do PGDAS-D</label>
+          <textarea id="pgdasd-paste" rows="4" style="font:inherit;font-size:12.5px;padding:9px 11px;border-radius:8px;border:1px solid var(--border);background:var(--surface-2);color:var(--text);resize:vertical;" placeholder="Cole aqui o texto do Extrato do PGDAS-D — o sistema procura os totais RBT12 e FS12 diretamente; se não encontrar, soma a tabela mensal de Receita Bruta / Folha de Salários (até 12 linhas)."></textarea>
+        </div>
+        <div class="btnrow" style="margin-top:10px;">
+          <button class="btn primary" onclick="processarPGDASD()">Processar PGDAS-D</button>
+        </div>
+        <div class="note" id="pgdasd-status" style="margin-top:12px; display:none;"></div>
+        <div class="grid3" style="margin-top:14px;">
+          <div class="field">
+            <label>RBT12 identificado (R$)</label>
+            <input type="number" id="pgdasd-rbt12" min="0" step="100" oninput="atualizarFatorRPGDASD()">
+          </div>
+          <div class="field">
+            <label>FS12 — Folha 12 meses identificada (R$)</label>
+            <input type="number" id="pgdasd-fs12" min="0" step="100" oninput="atualizarFatorRPGDASD()">
+          </div>
+          <div class="field">
+            <label>Fator R calculado (FS12 ÷ RBT12)</label>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:700;margin-top:9px;" id="pgdasd-fatorr">—</div>
+          </div>
+        </div>
+        <div class="btnrow" style="margin-top:14px;">
+          <button class="btn primary" onclick="aplicarPGDASD()">Aplicar RBT12 e Fator R à simulação</button>
+        </div>
+        <div class="note" style="margin-top:12px;"><b>Como funciona:</b> primeiro procuro as linhas com os totais que a Receita Federal já calcula no extrato (rótulos <code>RBT12</code> e <code>FS12</code>). Se não encontrar, tento somar a tabela mensal de Receita Bruta e de Folha de Salários (até 12 linhas cada). <i>O layout do Extrato do PGDAS-D pode variar por competência/versão — por isso os valores identificados sempre aparecem nos campos acima para conferência e ajuste manual; nada é aplicado à simulação até você clicar em "Aplicar". "Aplicar" grava a RBT12 no campo do Comparativo de Regimes e o Fator R (%) no campo "Folha de pagamento" usado na apuração — a decisão de qual Anexo usar continua sendo sua: o Fator R (LC 123/2006, art. 18, §§5º-C a 5º-J) só se aplica às atividades de serviço ali listadas; construção civil e outras atividades do Anexo IV não usam esse critério.</i></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
           <h2>DRE — importar planilha ou texto (Intecys ou genérica)</h2>
         </div>
         <p class="desc" style="margin-top:-4px;">Sem um layout de exportação de DRE do Intecys documentado nesta base, ofereço as duas formas: detecção automática por um template de rótulos comuns, ou mapeamento 100% manual — a detecção automática sempre fica visível e editável, nunca aplica nada sem você conferir.</p>
@@ -3240,6 +3273,82 @@ function parseDRENumero(v){
   if(!isFinite(n)) return 0;
   return negParen ? -n : n;
 }
+
+/* ---------- PGDAS-D: RBT12 e FS12 (Folha12) a partir do texto colado do extrato ---------- */
+function ultimoValorDaLinha(linha){
+  /* remove "RBT12"/"FS12" antes de procurar números — senão o "12" do próprio rótulo
+     é capturado como se fosse o valor da linha (ex.: em "Composição da RBT12", sem
+     nenhum valor monetário de fato). Também exige formato de valor monetário
+     (parte decimal com vírgula OU separador de milhar com ponto) para não confundir
+     com datas (08/2025) ou outros números soltos da linha. */
+  const semRotulo = linha.replace(/\bRBT\s*-?\s*12\b/gi,'').replace(/\bFS\s*-?\s*12\b/gi,'');
+  const numRe = /-?\d{1,3}(?:\.\d{3})*,\d{1,2}|-?\d{1,3}(?:\.\d{3}){1,}/g;
+  const nums = semRotulo.match(numRe);
+  if(!nums || !nums.length) return null;
+  return parseDRENumero(nums[nums.length-1]);
+}
+function somarTabelaMensalPGDASD(linhas, reInicio, reFim){
+  const idxInicio = linhas.findIndex(l=>reInicio.test(l));
+  if(idxInicio===-1) return null;
+  let soma = 0, count = 0;
+  for(let i=idxInicio+1; i<linhas.length && count<12; i++){
+    if(reFim.test(linhas[i])) break;
+    const v = ultimoValorDaLinha(linhas[i]);
+    if(v!==null && v>0){ soma += v; count++; }
+  }
+  return count>0 ? soma : null;
+}
+function parsePGDASD(texto){
+  const linhas = texto.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
+  let rbt12 = null, fs12 = null;
+  for(const linha of linhas){
+    if(rbt12===null && /\bRBT\s*-?\s*12\b/i.test(linha)){
+      const v = ultimoValorDaLinha(linha);
+      if(v!==null && v>0) rbt12 = v;
+    }
+    if(fs12===null && (/\bFS\s*-?\s*12\b/i.test(linha) || /folha\s*de\s*sal[áa]rios.*(12|doze)\s*meses/i.test(linha))){
+      const v = ultimoValorDaLinha(linha);
+      if(v!==null && v>0) fs12 = v;
+    }
+  }
+  if(rbt12===null) rbt12 = somarTabelaMensalPGDASD(linhas, /receita\s*bruta/i, /RBT\s*-?\s*12|fator\s*r|folha\s*de\s*sal[áa]rios/i);
+  if(fs12===null) fs12 = somarTabelaMensalPGDASD(linhas, /folha\s*de\s*sal[áa]rios/i, /RBT\s*-?\s*12|fator\s*r|receita\s*bruta\s*total/i);
+  return { rbt12, fs12 };
+}
+function processarPGDASD(){
+  const texto = document.getElementById('pgdasd-paste').value;
+  const status = document.getElementById('pgdasd-status');
+  if(!texto || !texto.trim()){ status.style.display='none'; return; }
+  const { rbt12, fs12 } = parsePGDASD(texto);
+  document.getElementById('pgdasd-rbt12').value = rbt12!==null ? rbt12.toFixed(2) : '';
+  document.getElementById('pgdasd-fs12').value = fs12!==null ? fs12.toFixed(2) : '';
+  status.style.display = '';
+  if(rbt12===null && fs12===null){
+    status.innerHTML = '<span style="color:var(--critical)">Não identifiquei RBT12 nem FS12 automaticamente neste texto. Confira se colou o extrato inteiro (Ctrl+A no leitor de PDF) ou informe os valores manualmente nos campos abaixo.</span>';
+  } else {
+    status.innerHTML = (rbt12!==null?'RBT12 identificado.':'<span style="color:var(--warn)">RBT12 não identificado — informe manualmente.</span>')
+      + ' ' + (fs12!==null?'FS12 identificado.':'FS12 não identificado (normal se a atividade não estiver sujeita ao Fator R, ou se o extrato não detalhar folha).');
+  }
+  atualizarFatorRPGDASD();
+}
+function atualizarFatorRPGDASD(){
+  const rbt12 = parseFloat(document.getElementById('pgdasd-rbt12').value)||0;
+  const fs12 = parseFloat(document.getElementById('pgdasd-fs12').value)||0;
+  const el = document.getElementById('pgdasd-fatorr');
+  if(rbt12<=0){ el.textContent = '—'; return; }
+  const fatorR = fs12/rbt12*100;
+  el.innerHTML = pct(fatorR) + (fatorR>=28
+    ? ' <span class="pill good" style="margin-left:4px;">≥ 28% — Anexo III</span>'
+    : ' <span class="pill warn" style="margin-left:4px;">&lt; 28% — Anexo V</span>');
+}
+function aplicarPGDASD(){
+  const rbt12 = parseFloat(document.getElementById('pgdasd-rbt12').value)||0;
+  const fs12 = parseFloat(document.getElementById('pgdasd-fs12').value)||0;
+  if(rbt12>0) document.getElementById('rbt12').value = rbt12.toFixed(2);
+  if(rbt12>0) document.getElementById('folha').value = (fs12/rbt12*100).toFixed(1);
+  calcular();
+}
+
 const DRE_CONCEITOS = [
   ['receita','Receita bruta / faturamento'],
   ['cmv','CMV / custo das mercadorias ou serviços'],
