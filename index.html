@@ -22,6 +22,13 @@
   --good:#1F7A44;
   --good-soft:#E5F2E9;
   --shadow: 0 1px 2px rgba(24,36,32,.06), 0 6px 16px -8px rgba(24,36,32,.12);
+  /* Paleta dedicada ao comparativo de 4 regimes (cards + gráfico + tabela) — validada
+     para distinção sob daltonismo (deuteranopia/protanopia/tritanopia) e para leitores
+     de visão normal, com contraste mínimo 3:1 sobre a superfície do card. */
+  --regime-1:#1F5FA8;
+  --regime-2:#00A388;
+  --regime-3:#D9770A;
+  --regime-4:#B8324A;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -44,6 +51,10 @@
     --good:#5FCB8A;
     --good-soft:#173420;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 24px -10px rgba(0,0,0,.5);
+    --regime-1:#4E8AC9;
+    --regime-2:#1C8D69;
+    --regime-3:#C2731F;
+    --regime-4:#CB5090;
   }
 }
 :root[data-theme="dark"]{
@@ -66,6 +77,10 @@
   --good:#5FCB8A;
   --good-soft:#173420;
   --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 24px -10px rgba(0,0,0,.5);
+  --regime-1:#4E8AC9;
+  --regime-2:#1C8D69;
+  --regime-3:#C2731F;
+  --regime-4:#CB5090;
 }
 
 *{box-sizing:border-box;}
@@ -183,6 +198,20 @@ tfoot td{ font-weight:600; border-top:1px solid var(--border); border-bottom:non
 .kpi.crit .v{ color:var(--critical); }
 .kpi.good .v{ color:var(--good); }
 
+/* Cards do comparativo de 4 regimes — paleta dedicada (--regime-1..4), mais contraste
+   visual e tipografia maior que os KPIs genéricos usados no restante da ferramenta. */
+.kpi-regime{
+  position:relative; background:var(--surface); border:1px solid var(--border);
+  border-left:5px solid var(--kpi-cor, var(--border)); border-radius:12px;
+  padding:16px 17px 15px; overflow:hidden; box-shadow:var(--shadow);
+}
+.kpi-regime::before{ content:''; position:absolute; inset:0; background:var(--kpi-cor,transparent); opacity:.05; pointer-events:none; }
+.kpi-regime.is-atual{ box-shadow:0 0 0 2px var(--kpi-cor,var(--border)) inset, var(--shadow); }
+.kpi-regime .l{ position:relative; display:flex; align-items:center; gap:7px; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--kpi-cor,var(--text-muted)); }
+.kpi-regime .l .dot{ width:8px; height:8px; border-radius:50%; background:var(--kpi-cor,var(--text-muted)); flex:none; }
+.kpi-regime .v{ position:relative; font-family:'IBM Plex Mono',monospace; font-size:29px; font-weight:700; letter-spacing:-0.015em; margin-top:9px; color:var(--text); font-variant-numeric:tabular-nums; }
+.kpi-regime .d{ position:relative; font-size:12px; margin-top:7px; color:var(--text-muted); display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+
 .pill{ display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:3px 9px; border-radius:99px; }
 .pill.crit{ background:var(--critical-soft); color:var(--critical); }
 .pill.good{ background:var(--good-soft); color:var(--good); }
@@ -252,6 +281,10 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
   #print-portal .kpi{ border:1px solid #ccc !important; break-inside:avoid; min-width:0; overflow:hidden; }
   #print-portal .kpi *{ min-width:0; overflow-wrap:break-word; }
   #print-portal .kpi .v{ font-size:17px; }
+  #print-portal .kpi-regime{ border:1px solid #ccc !important; border-left-width:4px !important; break-inside:avoid; min-width:0; overflow:hidden; box-shadow:none !important; }
+  #print-portal .kpi-regime::before{ opacity:.06 !important; }
+  #print-portal .kpi-regime *{ min-width:0; overflow-wrap:break-word; }
+  #print-portal .kpi-regime .v{ font-size:21px; }
   #print-portal .table-wrap{ overflow:visible !important; }
   #print-portal .table-wrap table{ width:100%; table-layout:fixed; }
   #print-portal svg{ max-width:100%; height:auto; overflow:visible; }
@@ -698,7 +731,7 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
           <div class="kpi-row" id="kpi-row-regimes"></div>
 
           <div style="margin-top:18px;">
-            <svg id="chart" width="100%" height="230" viewBox="0 0 600 230" preserveAspectRatio="xMidYMid meet"></svg>
+            <svg id="chart" width="100%" height="216" viewBox="0 0 600 216" preserveAspectRatio="xMidYMid meet"></svg>
           </div>
 
           <div class="table-wrap" style="margin-top:16px;">
@@ -922,10 +955,10 @@ function linhaTexto(desc, texto){
 }
 
 const REGIME_META = {
-  simples_unico:  {label:'Simples Nacional — Regime Único',   cor:'accent'},
-  simples_hibrido:{label:'Simples Nacional — Regime Híbrido', cor:'accent2'},
-  presumido:      {label:'Lucro Presumido',                   cor:'warn'},
-  real:           {label:'Lucro Real',                        cor:'critical'}
+  simples_unico:  {label:'Simples Nacional — Regime Único',   cor:'regime-1'},
+  simples_hibrido:{label:'Simples Nacional — Regime Híbrido', cor:'regime-2'},
+  presumido:      {label:'Lucro Presumido',                   cor:'regime-3'},
+  real:           {label:'Lucro Real',                        cor:'regime-4'}
 };
 
 function calcular(){
@@ -1067,10 +1100,10 @@ function calcular(){
     const meta = REGIME_META[k];
     const isAtual = k===regimeAtual;
     const isMenor = Math.abs(v-menor)<0.005;
-    return `<div class="kpi" style="border-color:${isAtual?`var(--${meta.cor})`:'var(--border)'}">
-      <div class="l" style="color:var(--${meta.cor})">${meta.label}</div>
+    return `<div class="kpi-regime${isAtual?' is-atual':''}" style="--kpi-cor:var(--${meta.cor})">
+      <div class="l"><span class="dot"></span>${meta.label}</div>
       <div class="v">${brl(v)}</div>
-      <div class="d">${fat>0?pct(v/fat*100)+' da receita':'—'} ${isAtual?'<span class="pill accent" style="margin-left:4px;">Atual</span>':''} ${isMenor?'<span class="pill good" style="margin-left:4px;">Menor carga</span>':''}</div>
+      <div class="d">${fat>0?pct(v/fat*100)+' da receita':'—'} ${isAtual?'<span class="pill accent" style="margin-left:2px;">Atual</span>':''} ${isMenor?'<span class="pill good" style="margin-left:2px;">Menor carga</span>':''}</div>
     </div>`;
   }).join('');
 
@@ -1083,7 +1116,9 @@ function calcular(){
   };
   document.getElementById('tabela-regimes').innerHTML = Object.keys(resultados).map(k=>{
     const v = resultados[k];
-    return `<tr><td>${REGIME_META[k].label}${k===regimeAtual?' <span class="pill accent">atual</span>':''}</td><td class="num">${brl(v)}</td><td class="num">${fat>0?pct(v/fat*100):'—'}</td><td style="color:var(--text-muted);font-size:12.5px;">${obs[k]}</td></tr>`;
+    const isAtual = k===regimeAtual;
+    const cor = `var(--${REGIME_META[k].cor})`;
+    return `<tr${isAtual?` style="background:color-mix(in srgb, ${cor} 7%, transparent);"`:''}><td style="border-left:3px solid ${cor};"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${cor};margin-right:7px;"></span>${REGIME_META[k].label}${isAtual?' <span class="pill accent">atual</span>':''}</td><td class="num" style="font-weight:700;">${brl(v)}</td><td class="num">${fat>0?pct(v/fat*100):'—'}</td><td style="color:var(--text-muted);font-size:12.5px;">${obs[k]}</td></tr>`;
   }).join('');
 
   /* ---- Impacto no crédito do comprador B2B (Regime Híbrido) ---- */
@@ -1148,14 +1183,20 @@ function imprimirComparativo(){
 
 function desenharGrafico(resultados, regimeAtual){
   const max = Math.max(...Object.values(resultados), 1)*1.15;
-  const W=600, padL=175, padR=105, top=16, barH=28, gap=42;
+  const W=600, padL=175, padR=112, top=14, barH=34, gap=48;
   const scale = v => (v/max)*(W-padL-padR);
-  const styleText = "font-size:11px;";
+  const styleLabel = "font-size:11px;";
+  const styleValue = "font-family:'IBM Plex Mono',monospace;font-size:13px;";
   const muted = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#5B6B62';
   const border = getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#ccc';
+  const surface2 = getComputedStyle(document.documentElement).getPropertyValue('--surface-2').trim() || '#EAEFEA';
   const keys = Object.keys(resultados);
-  const H = top + keys.length*gap + 10;
+  const H = top + keys.length*gap + 6;
 
+  /* Preenchimento sólido, sem <linearGradient>/url(#id): este SVG é clonado inteiro para o
+     portal de impressão (mesmos ids duplicados no documento), e referências url(#id) resolvem
+     de forma inconsistente entre as duas cópias — na prática, a barra saía sem preenchimento
+     no PDF. Cor sólida evita a classe inteira do problema. */
   let s = '';
   s += `<line x1="${padL}" y1="${top-6}" x2="${padL}" y2="${top+(keys.length-1)*gap+barH+6}" stroke="${border}" stroke-width="1"/>`;
   keys.forEach((k,i)=>{
@@ -1163,20 +1204,28 @@ function desenharGrafico(resultados, regimeAtual){
     const color = getComputedStyle(document.documentElement).getPropertyValue('--'+meta.cor).trim();
     const y = top+i*gap;
     const v = resultados[k];
-    const w = Math.max(scale(v),2);
+    const w = Math.max(scale(v),3);
     const isAtual = k===regimeAtual;
-    const labelX = padL-10;
+    const labelX = padL-12;
+
+    /* faixa zebrada por linha, para o olho acompanhar cada regime até o valor */
+    if(i%2===0) s += `<rect x="0" y="${y-7}" width="${W}" height="${barH+14}" fill="${surface2}" opacity="0.55"/>`;
+
     const labelFill = isAtual?color:muted;
-    const labelWeight = isAtual?'font-weight:700;':'';
+    const labelWeight = isAtual?'font-weight:700;':'font-weight:500;';
     const partes = meta.label.split(' — ');
     if(partes.length===2){
-      s += `<text x="${labelX}" y="${y+barH/2-3}" text-anchor="end" style="${styleText}${labelWeight}" fill="${labelFill}">${partes[0]}</text>`;
-      s += `<text x="${labelX}" y="${y+barH/2+11}" text-anchor="end" style="${styleText}${labelWeight}" fill="${labelFill}">${partes[1]}</text>`;
+      s += `<text x="${labelX}" y="${y+barH/2-4}" text-anchor="end" style="${styleLabel}${labelWeight}" fill="${labelFill}">${partes[0]}</text>`;
+      s += `<text x="${labelX}" y="${y+barH/2+12}" text-anchor="end" style="${styleLabel}${labelWeight}" fill="${labelFill}">${partes[1]}</text>`;
     }else{
-      s += `<text x="${labelX}" y="${y+barH/2+4}" text-anchor="end" style="${styleText}${labelWeight}" fill="${labelFill}">${meta.label}</text>`;
+      s += `<text x="${labelX}" y="${y+barH/2+4}" text-anchor="end" style="${styleLabel}${labelWeight}" fill="${labelFill}">${meta.label}</text>`;
     }
-    s += `<rect x="${padL}" y="${y}" width="${w}" height="${barH}" rx="4" fill="${color}" opacity="${isAtual?1:0.72}"/>`;
-    s += `<text x="${padL+w+10}" y="${y+barH/2+4}" style="${styleText}font-weight:600;" fill="${color}">${brl(v)}</text>`;
+
+    /* trilho de fundo — mostra a escala do gráfico mesmo em barras curtas */
+    s += `<rect x="${padL}" y="${y}" width="${W-padL-padR}" height="${barH}" rx="8" fill="${muted}" opacity="0.08"/>`;
+    s += `<rect x="${padL}" y="${y}" width="${w}" height="${barH}" rx="8" fill="${color}"${isAtual?` stroke="${color}" stroke-width="1.5" stroke-opacity="0.9"`:''}/>`;
+    s += `<rect x="${padL}" y="${y}" width="${w}" height="${Math.max(barH*0.42,10)}" rx="8" fill="#fff" opacity="0.14"/>`;
+    s += `<text x="${padL+w+12}" y="${y+barH/2+5}" style="${styleValue}font-weight:700;" fill="${color}">${brl(v)}</text>`;
   });
   const svg = document.getElementById('chart');
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
