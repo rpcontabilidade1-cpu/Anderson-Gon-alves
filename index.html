@@ -3311,8 +3311,9 @@ function somarTabelaMensalPGDASD(linhas, reInicio, reFim){
 }
 function parsePGDASD(texto){
   const linhas = texto.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
-  let rbt12 = null, fs12 = null;
-  for(const linha of linhas){
+  let rbt12 = null, fs12 = null, fatorR = null;
+  for(let i=0;i<linhas.length;i++){
+    const linha = linhas[i];
     if(rbt12===null && /\bRBT\s*-?\s*12\b/i.test(linha)){
       const v = ultimoValorDaLinha(linha);
       if(v!==null && v>0) rbt12 = v;
@@ -3321,10 +3322,25 @@ function parsePGDASD(texto){
       const v = ultimoValorDaLinha(linha);
       if(v!==null && v>0) fs12 = v;
     }
+    /* Alguns relatórios (ex.: "Relatório de Apuração do Simples Nacional") trazem o Fator R já
+       calculado em %, mas não o FS12 em R$. O valor às vezes cai na linha seguinte à do rótulo,
+       quando "Fator R:" e o número ficam em blocos de texto separados no PDF. */
+    if(fatorR===null && /\bfator\s*r\b/i.test(linha)){
+      let v = ultimoValorDaLinha(linha);
+      if(v===null && linhas[i+1]) v = ultimoValorDaLinha(linhas[i+1]);
+      if(v!==null) fatorR = v;
+    }
   }
   if(rbt12===null) rbt12 = somarTabelaMensalPGDASD(linhas, /receita\s*bruta/i, /RBT\s*-?\s*12|fator\s*r|folha\s*de\s*sal[áa]rios/i);
   if(fs12===null) fs12 = somarTabelaMensalPGDASD(linhas, /folha\s*de\s*sal[áa]rios/i, /RBT\s*-?\s*12|fator\s*r|receita\s*bruta\s*total/i);
-  return { rbt12, fs12 };
+  let fs12Estimado = false;
+  if(fs12===null && fatorR!==null && rbt12!==null && rbt12>0){
+    /* Este relatório não traz FS12 em R$ — retroestima a partir do Fator R já calculado pela
+       Receita Federal (FS12 = Fator R × RBT12), deixando claro na interface que é estimado. */
+    fs12 = fatorR/100*rbt12;
+    fs12Estimado = true;
+  }
+  return { rbt12, fs12, fatorR, fs12Estimado };
 }
 
 /* Leitura do PDF do PGDAS-D direto no navegador (PDF.js via CDN — nenhum arquivo sai da máquina
@@ -3343,16 +3359,24 @@ async function extrairTextoPDF(file){
   for(let p=1; p<=pdf.numPages; p++){
     const page = await pdf.getPage(p);
     const content = await page.getTextContent();
+    /* Ordena por posição (Y e depois X) antes de agrupar em linhas — relatórios em tabela
+       (como o Relatório de Apuração do Simples Nacional) frequentemente gravam o PDF numa
+       ordem de desenho diferente da ordem de leitura visual (ex.: todos os rótulos de uma
+       coluna primeiro, todos os valores de outra depois); sem reordenar, rótulo e valor da
+       mesma linha da tabela saem em trechos de texto separados e o parser por linha falha. */
+    const itens = content.items
+      .map(it => ({ str: it.str, x: it.transform[4], y: it.transform[5] }))
+      .filter(it => it.str && it.str.trim());
+    itens.sort((a,b) => (b.y - a.y) || (a.x - b.x));
     let linhaAtualY = null;
     let linha = [];
-    for(const item of content.items){
-      const y = item.transform[5];
-      if(linhaAtualY===null || Math.abs(y-linhaAtualY)>2){
+    for(const it of itens){
+      if(linhaAtualY===null || Math.abs(it.y-linhaAtualY)>2){
         if(linha.length) texto += linha.join(' ') + '\n';
-        linha = [item.str];
-        linhaAtualY = y;
+        linha = [it.str];
+        linhaAtualY = it.y;
       } else {
-        linha.push(item.str);
+        linha.push(it.str);
       }
     }
     if(linha.length) texto += linha.join(' ') + '\n';
@@ -3386,15 +3410,18 @@ function processarPGDASD(){
   const texto = document.getElementById('pgdasd-paste').value;
   const status = document.getElementById('pgdasd-status');
   if(!texto || !texto.trim()){ status.style.display='none'; return; }
-  const { rbt12, fs12 } = parsePGDASD(texto);
+  const { rbt12, fs12, fatorR, fs12Estimado } = parsePGDASD(texto);
   document.getElementById('pgdasd-rbt12').value = rbt12!==null ? rbt12.toFixed(2) : '';
   document.getElementById('pgdasd-fs12').value = fs12!==null ? fs12.toFixed(2) : '';
   status.style.display = '';
-  if(rbt12===null && fs12===null){
-    status.innerHTML = '<span style="color:var(--critical)">Não identifiquei RBT12 nem FS12 automaticamente neste texto. Confira se colou o extrato inteiro (Ctrl+A no leitor de PDF) ou informe os valores manualmente nos campos abaixo.</span>';
+  if(rbt12===null && fs12===null && fatorR===null){
+    status.innerHTML = '<span style="color:var(--critical)">Não identifiquei RBT12, FS12 nem Fator R automaticamente neste texto. Confira se colou o extrato inteiro (Ctrl+A no leitor de PDF) ou informe os valores manualmente nos campos abaixo.</span>';
   } else {
-    status.innerHTML = (rbt12!==null?'RBT12 identificado.':'<span style="color:var(--warn)">RBT12 não identificado — informe manualmente.</span>')
-      + ' ' + (fs12!==null?'FS12 identificado.':'FS12 não identificado (normal se a atividade não estiver sujeita ao Fator R, ou se o extrato não detalhar folha).');
+    let msgFs12;
+    if(fs12Estimado) msgFs12 = `FS12 não vem em R$ neste relatório — estimado a partir do Fator R informado (${fatorR.toFixed(2)}%) × RBT12; confira/ajuste se tiver o valor exato da folha.`;
+    else if(fs12!==null) msgFs12 = 'FS12 identificado.';
+    else msgFs12 = 'FS12 não identificado (normal se a atividade não estiver sujeita ao Fator R, ou se o relatório não detalhar folha nem Fator R).';
+    status.innerHTML = (rbt12!==null?'RBT12 identificado.':'<span style="color:var(--warn)">RBT12 não identificado — informe manualmente.</span>') + ' ' + msgFs12;
   }
   atualizarFatorRPGDASD();
 }
