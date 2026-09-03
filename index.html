@@ -804,10 +804,29 @@ svg text{ font-family:'IBM Plex Mono',monospace; fill:var(--text-muted); }
               <option value="1">Padrão — sem redução (alíquota cheia)</option>
               <option value="0.4">Redução de 60% — saúde, educação, transporte coletivo, agropecuária, insumos agropecuários, cultura, dispositivos médicos/PcD</option>
               <option value="0.7">Redução de 30% — serviços profissionais intelectuais de profissão regulamentada (sujeitos a fiscalização de conselho)</option>
+              <option value="0.3">Redução de 70% — locação, cessão onerosa ou arrendamento de bens imóveis (LC 214/2025, art. 261, parágrafo único)</option>
               <option value="0">Isenção/alíquota zero — cesta básica nacional, medicamentos e produtos hortícolas específicos</option>
-              <option value="regra-propria">Regime específico próprio (não percentual) — combustíveis, financeiro, planos de saúde, imóveis, cooperativas</option>
+              <option value="regra-propria">Regime específico próprio (não percentual) — combustíveis, financeiro, planos de saúde, venda/incorporação imobiliária, cooperativas</option>
             </select>
             <div class="hint">Defina a partir do CNAE e do NBS/NCM efetivamente utilizado na nota — o CNAE isoladamente não determina o enquadramento. Conferir Anexos da LC 214/2025 caso a caso; percentuais de redução aproximados.</div>
+          </div>
+        </div>
+        <div class="grid3" style="margin-top:14px;display:none;" id="wrap-locacao-imoveis">
+          <div class="field">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" id="loc-curta-temporada" style="width:auto;"> Locação de curta temporada (≤ 90 dias ininterruptos)
+            </label>
+            <div class="hint">Segue as regras de hotelaria, não as de locação (LC 214/2025, art. 253) — sem redução de 70% e sem redutor social; alíquota cheia sobre o valor total do aluguel. Marque para simular esse caso.</div>
+          </div>
+          <div class="field" id="wrap-loc-n-imoveis">
+            <label>Nº de imóveis residenciais locados (redutor social)</label>
+            <input type="number" id="loc-n-imoveis" value="1" min="0" step="1">
+            <div class="hint">Só para locação residencial fora da curta temporada (LC 214/2025, art. 260). Deduz o redutor social da base de cálculo, por imóvel.</div>
+          </div>
+          <div class="field" id="wrap-loc-redutor-valor">
+            <label>Redutor social por imóvel (R$/mês)</label>
+            <input type="text" inputmode="decimal" class="money" id="loc-redutor-social" value="600,00">
+            <div class="hint">Valor-base R$ 600,00 (LC 214/2025, art. 260), atualizado mensalmente pelo IPCA a partir da publicação da lei — confira o valor vigente e ajuste aqui se necessário.</div>
           </div>
         </div>
       </div>
@@ -1193,6 +1212,22 @@ const REGIME_META = {
   real:           {label:'Lucro Real',                        cor:'regime-4'}
 };
 
+/* ---------- locação de bens imóveis — redução de 70% (LC 214/2025, art. 261, § único) e redutor
+   social de R$600/mês por imóvel residencial (art. 260), com exceção para curta temporada (art. 253) ---------- */
+function atualizarClassificacaoImoveis(){
+  const locacaoImoveis = document.getElementById('classificacao').value==='0.3';
+  document.getElementById('wrap-locacao-imoveis').style.display = locacaoImoveis ? '' : 'none';
+  const curtaTemporada = document.getElementById('loc-curta-temporada').checked;
+  const mostrarRedutor = locacaoImoveis && !curtaTemporada;
+  document.getElementById('wrap-loc-n-imoveis').style.display = mostrarRedutor ? '' : 'none';
+  document.getElementById('wrap-loc-redutor-valor').style.display = mostrarRedutor ? '' : 'none';
+}
+document.getElementById('classificacao').addEventListener('change', atualizarClassificacaoImoveis);
+document.getElementById('loc-curta-temporada').addEventListener('change', ()=>{ atualizarClassificacaoImoveis(); calcular(); });
+['loc-n-imoveis','loc-redutor-social'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', calcular);
+});
+
 function calcular(){
   const regimeAtual = document.getElementById('regime').value;
   const fat = parseBRL(document.getElementById('faturamento').value);
@@ -1208,8 +1243,15 @@ function calcular(){
   const percEmbutidoPct = (parseFloat(document.getElementById('percembutido').value)||0)/100;
   const b2bPct = (parseFloat(document.getElementById('b2bpct').value)||0)/100;
   const classifRaw = document.getElementById('classificacao').value;
-  const redutor = classifRaw==='regra-propria' ? 1 : parseFloat(classifRaw);
   const regraPropria = classifRaw==='regra-propria';
+  const locacaoImoveis = classifRaw==='0.3';
+  const locCurtaTemporada = locacaoImoveis && document.getElementById('loc-curta-temporada').checked;
+  /* Locação de curta temporada (≤90 dias) segue regra de hotelaria — alíquota cheia, sem a redução de 70%
+     nem o redutor social (LC 214/2025, art. 253). */
+  const redutor = regraPropria ? 1 : (locCurtaTemporada ? 1 : parseFloat(classifRaw));
+  const redutorSocialUnit = parseBRL(document.getElementById('loc-redutor-social').value);
+  const nImoveisResidenciais = locacaoImoveis && !locCurtaTemporada ? (parseFloat(document.getElementById('loc-n-imoveis').value)||0) : 0;
+  const redutorSocialTotal = nImoveisResidenciais*redutorSocialUnit;
   const aliqReformaEfetiva = aliqReforma*redutor;
 
   /* ---- Despesas com direito a crédito de IBS/CBS ---- */
@@ -1273,7 +1315,11 @@ function calcular(){
   const componenteEmbutido = aliqEf*percEmbutidoPct;
   const dasReduzido = fat*(aliqEf - componenteEmbutido);
   const baseCredHibrido = (fat*insumosPct + despesasCreditaveis)*credAplic;
-  const baseTribHibrido = Math.max(fat - baseCredHibrido, 0);
+  const baseTribHibridoBruta = Math.max(fat - baseCredHibrido, 0);
+  /* Redutor social — locação residencial (LC 214/2025, art. 260): R$/imóvel deduzido da base de cálculo do
+     IBS/CBS, não da alíquota. Não se aplica à locação de curta temporada (redutorSocialTotal fica 0 nesse
+     caso, já filtrado ao calcular nImoveisResidenciais acima). */
+  const baseTribHibrido = Math.max(baseTribHibridoBruta - redutorSocialTotal, 0);
 
   /* ---- Calendário constitucional (art. 125 a 130, ADCT, EC 132/2023) — em 2026 CBS e IBS ainda estão em
      fase de teste (não calculados aqui); 2027-2028 só a CBS é cobrada em alíquota plena, o IBS permanece a
@@ -1293,7 +1339,16 @@ function calcular(){
   memSH.push(linhaMemoria(`Insumos/compras creditáveis (${pct(insumosPct*100)} da receita)`, fat*insumosPct));
   memSH.push(linhaMemoria('Despesas creditáveis (energia + aluguel + serviços tomados + telecom + outras)', despesasCreditaveis));
   memSH.push(linhaMemoria(`Base de crédito total (× ${pct(credAplic*100)} aplicável)`, baseCredHibrido));
-  memSH.push(linhaMemoria('Base tributável IBS/CBS (Receita − Créditos)', baseTribHibrido));
+  if(locacaoImoveis && locCurtaTemporada){
+    memSH.push(linhaTexto('Locação de bens imóveis — curta temporada (≤ 90 dias)', 'Regra de hotelaria (art. 253, LC 214/2025): alíquota cheia, sem redução de 70% e sem redutor social'));
+    memSH.push(linhaMemoria('Base tributável IBS/CBS (Receita − Créditos, sem redutor social)', baseTribHibrido));
+  } else if(locacaoImoveis){
+    memSH.push(linhaMemoria('Base tributável IBS/CBS antes do redutor social', baseTribHibridoBruta));
+    memSH.push(linhaMemoria(`Redutor social (${nImoveisResidenciais} imóvel(is) × ${brl(redutorSocialUnit)}/mês, art. 260, LC 214/2025)`, -redutorSocialTotal));
+    memSH.push(linhaMemoria('Base tributável IBS/CBS (após redutor social)', baseTribHibrido));
+  } else {
+    memSH.push(linhaMemoria('Base tributável IBS/CBS (Receita − Créditos)', baseTribHibrido));
+  }
   if(regraPropria){
     memSH.push(`<tr><td colspan="2" style="color:var(--warn)">Classificação = regime específico próprio — alíquota não percentual, não simulada neste modelo. Consulte as regras setoriais da LC 214/2025.</td></tr>`);
   } else {
@@ -1537,7 +1592,12 @@ function calcularTrajetoria(){
   const aliqReforma = (parseFloat(document.getElementById('aliqreforma').value)||0)/100;
   const credAplic = (parseFloat(document.getElementById('credaplic').value)||0)/100;
   const classifRaw = document.getElementById('classificacao').value;
-  const redutor = classifRaw==='regra-propria' ? 1 : parseFloat(classifRaw);
+  const locacaoImoveis = classifRaw==='0.3';
+  const locCurtaTemporada = locacaoImoveis && document.getElementById('loc-curta-temporada').checked;
+  const redutor = classifRaw==='regra-propria' ? 1 : (locCurtaTemporada ? 1 : parseFloat(classifRaw));
+  const redutorSocialUnit = parseBRL(document.getElementById('loc-redutor-social').value);
+  const nImoveisResidenciais = locacaoImoveis && !locCurtaTemporada ? (parseFloat(document.getElementById('loc-n-imoveis').value)||0) : 0;
+  const redutorSocialTotal = nImoveisResidenciais*redutorSocialUnit;
   const cbsFracao = (parseFloat(document.getElementById('cbsfracao').value)||0)/100;
   const aliqCBS = aliqReforma*redutor*cbsFracao;
   const aliqIBS = aliqReforma*redutor*(1-cbsFracao);
@@ -1568,13 +1628,13 @@ function calcularTrajetoria(){
   const pisCofinsR_full = baseLiqR*0.0165 + baseLiqR*0.076;
 
   const baseCredIVA = (fat*insumosPct + despesasCreditaveis)*credAplic;
-  const baseTribIVA = Math.max(fat-baseCredIVA,0);
+  const baseTribIVA = Math.max(fat-baseCredIVA-redutorSocialTotal,0);
 
   const { aliqEf, totalSU: totalSU_fixo } = simplesUnicoOuMisto(fat, rbt12);
   const componenteEmbutido = aliqEf*percEmbutidoPct;
   const dasReduzido = fat*(aliqEf-componenteEmbutido);
   const baseCredHibrido = (fat*insumosPct + despesasCreditaveis)*credAplic;
-  const baseTribHibrido = Math.max(fat-baseCredHibrido,0);
+  const baseTribHibrido = Math.max(fat-baseCredHibrido-redutorSocialTotal,0);
 
   return TRANSICAO_ANOS.map(t=>{
     const icmsIssAno = fat*icmsIssPctAtual*t.icmsIssFactor;
@@ -1649,8 +1709,9 @@ document.getElementById('cbsfracao').addEventListener('input', atualizarTrajetor
 
 function salvarSimulacao(){
   try{
-    const ids = ['regime','anexo-modo','anexo','anexo-a','anexo-b','anexo-a-valor','anexo-b-valor','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','rat','terceiros','ano-referencia','aliqreforma','cbsfracao','credaplic','percembutido','b2bpct','classificacao','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'];
+    const ids = ['regime','anexo-modo','anexo','anexo-a','anexo-b','anexo-a-valor','anexo-b-valor','atividade','faturamento','rbt12','margem','icmsiss','insumos','folha','rat','terceiros','ano-referencia','aliqreforma','cbsfracao','credaplic','percembutido','b2bpct','classificacao','loc-n-imoveis','loc-redutor-social','desp-energia','desp-aluguel','desp-servicos','desp-telecom','desp-outras'];
     const data = {}; ids.forEach(id=> data[id]=document.getElementById(id).value);
+    data['loc-curta-temporada'] = document.getElementById('loc-curta-temporada').checked;
     localStorage.setItem('dossie-simulacao', JSON.stringify(data));
   }catch(e){}
 }
@@ -1659,8 +1720,14 @@ function carregarSimulacao(){
     const raw = localStorage.getItem('dossie-simulacao');
     if(!raw) return;
     const data = JSON.parse(raw);
-    Object.keys(data).forEach(id=>{ const el=document.getElementById(id); if(el) el.value = data[id]; });
+    Object.keys(data).forEach(id=>{
+      const el=document.getElementById(id);
+      if(!el) return;
+      if(id==='loc-curta-temporada') el.checked = !!data[id];
+      else el.value = data[id];
+    });
     atualizarModoAnexo();
+    atualizarClassificacaoImoveis();
   }catch(e){}
 }
 
@@ -4049,6 +4116,7 @@ function aplicarImportacao(){
 
 /* ---------- init ---------- */
 atualizarRegraISS();
+atualizarClassificacaoImoveis();
 calcular();
 atualizarModoPrecificacao();
 </script>
