@@ -112,8 +112,7 @@ td select { font-family: var(--font-mono); font-size: 12.5px; padding: 4px 6px; 
       </label>
       <label for="regime">Regime tributário
         <select id="regime">
-          <option value="simples_unico">Simples Nacional – Regime Único (IBS/CBS no DAS)</option>
-          <option value="simples_hibrido">Simples Nacional – Híbrido (IBS/CBS pelo regime regular)</option>
+          <option value="simples">Simples Nacional – puro e híbrido (duas visões)</option>
           <option value="mei">MEI</option>
           <option value="presumido">Lucro Presumido</option>
           <option value="real">Lucro Real</option>
@@ -190,7 +189,7 @@ var EXEMPLO = /*__EXEMPLO__*/null;
 var TEXTOS = /*__TEXTOS__*/null;
 var M = window.Motor;
 var LIMITE_TELA = 400;
-var estado = { base: null, baseNome: "", itens: [], avisos: [], cliente: "", regime: "simples_unico", arquivos: [], exemplo: false, filtro: "", busca: "" };
+var estado = { base: null, baseNome: "", itens: [], avisos: [], cliente: "", regime: "simples", arquivos: [], exemplo: false, filtro: "", busca: "" };
 var $ = function (id) { return document.getElementById(id); };
 
 // ------------------------------------------------------------------ base
@@ -292,7 +291,7 @@ function ajustarCct(i, cct) {
   r.lei = "Ajuste manual do escritório – informar base legal"; r.cond = ""; r.regra = "AJUSTE MANUAL";
   r.obs = r.obs.filter(function (o) { return o.indexOf("Ajustado manualmente") !== 0; });
   r.obs.unshift("Ajustado manualmente para " + r.cst + "/" + cct + ".");
-  if (estado.regime === "simples_unico") r.obs_regime = r.trat !== "Tributação integral" ? "Simples (regime único): segregar a receita deste item no PGDAS-D para refletir o benefício." : "";
+  if (estado.regime === "simples") r.obs_regime = r.trat !== "Tributação integral" ? M.OBS_SIMPLES : "";
   render();
 }
 function ajustarStatus(i, st) { estado.itens[i].res.status = st; render(); }
@@ -368,12 +367,12 @@ function classificarItens(itensLidos, avisos) {
   estado.filtro = ""; render(); mostrarAvisos();
 }
 function carregarExemplo() {
-  estado.exemplo = true; estado.cliente = "Mercadinho Exemplo"; estado.regime = "simples_unico";
+  estado.exemplo = true; estado.cliente = "Mercadinho Exemplo"; estado.regime = "simples";
   $("regime").value = estado.regime;
   var r = M.lerFolhas(EXEMPLO, estado.base);
   classificarItens(r.itens, r.avisos);
   var b = $("banner"); b.hidden = false;
-  b.textContent = "Exemplo fictício (Mercadinho Exemplo, Simples Nacional). Envie o arquivo do cliente ao lado para substituir.";
+  b.textContent = "Exemplo fictício (Mercadinho Exemplo, Simples Nacional: o Excel sai com as visões puro e híbrido). Envie o arquivo do cliente ao lado para substituir.";
 }
 
 // ------------------------------------------------------------------ eventos
@@ -478,7 +477,10 @@ function montarWorkbook() {
   var wb = new ExcelJS.Workbook(); wb.creator = "Classificador IBS/CBS"; wb.calcProperties.fullCalcOnLoad = true;
   var wi = wb.addWorksheet("Instrucoes", { views: [{ showGridLines: false }] });
   var wc = wb.addWorksheet("Cadastro_Fiscal", { views: [{ state: "frozen", xSplit: 2, ySplit: 1 }] });
-  var we = wb.addWorksheet("Importacao_ERP", { views: [{ state: "frozen", xSplit: 1, ySplit: 1 }] });
+  var simples = estado.regime === "simples";
+  var abasErp = simples ? [["Importacao_ERP_Unico", T.ERP_SIMPLES.Unico], ["Importacao_ERP_Hibrido", T.ERP_SIMPLES.Hibrido]] : [["Importacao_ERP", []]];
+  abasErp.forEach(function (a) { a.push(wb.addWorksheet(a[0], { views: [{ state: "frozen", xSplit: 1, ySplit: 1 }] })); });
+  var wq = simples ? wb.addWorksheet("Comparativo_Simples") : null;
   var ws = wb.addWorksheet("Resumo");
   var wd = wb.addWorksheet("Divergencias_Riscos", { views: [{ state: "frozen", xSplit: 1, ySplit: 1 }] });
   var wy = wb.addWorksheet("Leiaute_Importacao");
@@ -544,28 +546,56 @@ function montarWorkbook() {
   wl.getCell("A1").value = "CATEGORIA_IS"; wl.getCell("B1").value = "CODIGO";
   M.CAT_IS.forEach(function (c, k) { wl.getCell(k + 2, 1).value = c; var x = wl.getCell(k + 2, 2); x.value = ("0" + (k + 1)).slice(-2); x.numFmt = "@"; });
 
-  // Importacao_ERP
+  // Importacao_ERP (uma aba; ou duas visões para o Simples Nacional)
   var ERP = T.ERP, CF = "Cadastro_Fiscal";
-  cab(we, 1, ERP.map(function (e) { return [e[0], e[1]]; }));
-  itens.forEach(function (it, n) {
-    var k = n + 2, r = it.res, ref = r.cct ? refIdx[r.cct] : null;
-    var val = { cod: it.codigo, desc: it.descricao, tipo: r.tipo, ncm: it.ncm || it.ncm_orig, nbs: it.nbs, cest: it.cest, ean: it.ean,
-      un: it.unidade, cst: r.cst, cct: r.cct, is: r.is, st: r.status };
-    ERP.forEach(function (e, j) {
-      var src = e[2], x;
-      if (src.slice(-1) === "%") {
-        var col = L[src.slice(0, -1)], pv = ref ? (src[1] === "i" ? ref.ri : ref.rc) : "";
-        x = cel(we, k, j + 1, f('IF(' + CF + '!$' + col + k + '="","",ROUND(' + CF + '!$' + col + k + '*100,2))', pv === "" ? "" : Math.round(pv * 10000) / 100), { fmt: "0.00" });
-      } else if (src === "cat#") {
-        var ix = M.CAT_IS.indexOf(r.cat_is);
-        x = cel(we, k, j + 1, f('IF(' + CF + '!$' + L.cat + k + '="","",TEXT(MATCH(' + CF + '!$' + L.cat + k + ',Listas!$A$2:$A$8,0),"00"))', ix >= 0 ? ("0" + (ix + 1)).slice(-2) : ""), { fmt: "@" });
-      } else {
-        x = cel(we, k, j + 1, f('IF(' + CF + '!$' + L[src] + k + '="","",' + CF + '!$' + L[src] + k + '&"")', val[src] || ""), { fmt: "@" });
-      }
+  abasErp.forEach(function (aba) {
+    var we = aba[2], extras = aba[1];
+    var cols = ERP.slice(0, -1).map(function (e) { return { h: e[0], w: e[1], src: e[2] }; })
+      .concat(extras.map(function (e) { return { h: e[0], w: e[1], tp: e[2], val: e[3] }; }))
+      .concat([{ h: ERP[ERP.length - 1][0], w: ERP[ERP.length - 1][1], src: ERP[ERP.length - 1][2] }]);
+    cab(we, 1, cols.map(function (c) { return [c.h, c.w]; }));
+    itens.forEach(function (it, n) {
+      var k = n + 2, r = it.res, ref = r.cct ? refIdx[r.cct] : null, riv = ref ? ref.ri : "";
+      var val = { cod: it.codigo, desc: it.descricao, tipo: r.tipo, ncm: it.ncm || it.ncm_orig, nbs: it.nbs, cest: it.cest, ean: it.ean,
+        un: it.unidade, cst: r.cst, cct: r.cct, is: r.is, st: r.status };
+      var cri = CF + "!$" + L.ri + k;
+      cols.forEach(function (c, j) {
+        if (c.tp === "const") cel(we, k, j + 1, c.val, { fmt: "@" });
+        else if (c.tp === "seg") cel(we, k, j + 1, f('IF(' + cri + '="","",IF(' + cri + '>0,"SIM","NAO"))', riv === "" ? "" : (riv > 0 ? "SIM" : "NAO")), { fmt: "@" });
+        else if (c.tp === "cred") cel(we, k, j + 1, f('IF(' + cri + '="","",IF(' + cri + '>=1,"SEM_DESTAQUE","INTEGRAL"))', riv === "" ? "" : (riv >= 1 ? "SEM_DESTAQUE" : "INTEGRAL")), { fmt: "@" });
+        else if (c.src.slice(-1) === "%") {
+          var col = L[c.src.slice(0, -1)], pv = ref ? (c.src[1] === "i" ? ref.ri : ref.rc) : "";
+          cel(we, k, j + 1, f('IF(' + CF + '!$' + col + k + '="","",ROUND(' + CF + '!$' + col + k + '*100,2))', pv === "" ? "" : Math.round(pv * 10000) / 100), { fmt: "0.00" });
+        } else if (c.src === "cat#") {
+          var ix = M.CAT_IS.indexOf(r.cat_is);
+          cel(we, k, j + 1, f('IF(' + CF + '!$' + L.cat + k + '="","",TEXT(MATCH(' + CF + '!$' + L.cat + k + ',Listas!$A$2:$A$8,0),"00"))', ix >= 0 ? ("0" + (ix + 1)).slice(-2) : ""), { fmt: "@" });
+        } else cel(we, k, j + 1, f('IF(' + CF + '!$' + L[c.src] + k + '="","",' + CF + '!$' + L[c.src] + k + '&"")', val[c.src] || ""), { fmt: "@" });
+      });
     });
+    we.autoFilter = "A1:" + letra(cols.length) + last;
+    corStatus(we, letra(cols.length) + "2:" + letra(cols.length) + last);
   });
-  we.autoFilter = "A1:" + letra(ERP.length) + last;
-  corStatus(we, letra(ERP.length) + "2:" + letra(ERP.length) + last);
+
+  // Comparativo_Simples
+  if (wq) {
+    titulo(wq, "SIMPLES NACIONAL — REGIME ÚNICO (PURO) x REGIME HÍBRIDO", "C");
+    cab(wq, 3, [["Aspecto", 34], ["Simples puro (regime único)", 55], ["Simples híbrido (IBS/CBS pelo regime regular)", 55]]);
+    T.COMPARATIVO.forEach(function (ln, k) { ln.forEach(function (v, j) { cel(wq, k + 4, j + 1, v, { wrap: true, bold: j === 0 }); }); });
+    var kq = 4 + T.COMPARATIVO.length + 1, rgq = function (key) { return CF + "!$" + L[key] + "$2:$" + L[key] + "$" + last; };
+    wq.getCell(kq, 1).value = "Itens deste cliente"; wq.getCell(kq, 1).font = { name: AR, size: 11, bold: true, color: { argb: AZUL } };
+    var riOf = function (it) { var d = it.res.cct ? refIdx[it.res.cct] : null; return d ? d.ri : null; };
+    var cq = [["Itens classificados", f("COUNTA(" + rgq("cod") + ")", itens.filter(function (it) { return it.codigo; }).length)],
+      ["Itens com redução ou alíquota zero (segregar no PGDAS-D no regime único)", f('COUNTIF(' + rgq("ri") + ',">0")', itens.filter(function (it) { return riOf(it) > 0; }).length)],
+      ["Itens com alíquota zero (sem crédito a transferir no híbrido)", f('COUNTIF(' + rgq("ri") + ',">=1")', itens.filter(function (it) { return riOf(it) >= 1; }).length)],
+      ["Itens com tributação integral", f('COUNTIF(' + rgq("trat") + ',"Tributação integral")', itens.filter(function (it) { return it.res.trat === "Tributação integral"; }).length)],
+      ["Itens sujeitos ao Imposto Seletivo", f('COUNTIF(' + rgq("is") + ',"S")', itens.filter(function (it) { return it.res.is === "S"; }).length)]];
+    cq.forEach(function (p, i) { cel(wq, kq + 1 + i, 1, p[0], { wrap: true }); cel(wq, kq + 1 + i, 2, p[1], { bold: true }); });
+    var nq = kq + 1 + cq.length + 1;
+    wq.mergeCells(nq, 1, nq + 1, 3);
+    var xq = wq.getCell(nq, 1);
+    xq.value = "A escolha entre os regimes depende do faturamento B2B x B2C, das margens e do volume de compras com IBS/CBS a creditar. Para decidir com números, simular os dois cenários com os dados do cliente.";
+    xq.font = { name: AR, size: 9, italic: true }; xq.alignment = { wrapText: true, vertical: "top" };
+  }
 
   // Resumo
   titulo(ws, "RESUMO DA CLASSIFICAÇÃO", "E");
@@ -619,10 +649,11 @@ function montarWorkbook() {
   if (div.length) wd.autoFilter = "A1:G" + (div.length + 1);
 
   // Leiaute_Importacao
-  titulo(wy, "LEIAUTE PARA IMPORTAÇÃO NO ERP — ABA Importacao_ERP", "F");
+  titulo(wy, "LEIAUTE PARA IMPORTAÇÃO NO ERP — " + (simples ? "ABAS Importacao_ERP_Unico / _Hibrido" : "ABA Importacao_ERP"), "F");
   cab(wy, 3, [["Campo", 20], ["Descrição", 46], ["Tipo", 12], ["Tamanho", 10], ["Obrigatório", 12], ["Destino no documento fiscal / observação", 70]]);
-  T.LEIAUTE.forEach(function (ln, k) { ln.forEach(function (v, j) { cel(wy, k + 4, j + 1, v, { wrap: true }); }); });
-  var kk = 4 + T.LEIAUTE.length + 1;
+  var lay = T.LEIAUTE.slice(0, -1).concat(simples ? T.LEIAUTE_SIMPLES : []).concat(T.LEIAUTE.slice(-1));
+  lay.forEach(function (ln, k) { ln.forEach(function (v, j) { cel(wy, k + 4, j + 1, v, { wrap: true }); }); });
+  var kk = 4 + lay.length + 1;
   T.ORIENTACOES.forEach(function (t) { var x = wy.getCell(kk++, 1); x.value = t; x.font = { name: AR, size: 10, bold: /:$/.test(t) }; });
 
   // Instrucoes

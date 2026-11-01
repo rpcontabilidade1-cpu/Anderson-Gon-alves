@@ -41,22 +41,21 @@ CAT_IS = ["Veículos", "Embarcações e aeronaves", "Produtos fumígenos", "Bebi
           "Bebidas açucaradas", "Bens minerais", "Concursos de prognósticos e fantasy sport"]
 
 REGIMES = {
-    "simples_unico": "Simples Nacional – Regime Único (IBS/CBS no DAS)",
-    "simples_hibrido": "Simples Nacional – Regime Híbrido (IBS/CBS pelo regime regular)",
+    "simples": "Simples Nacional – Regime Único e Regime Híbrido (duas visões)",
     "mei": "MEI",
     "presumido": "Lucro Presumido",
     "real": "Lucro Real",
     "": "não informado",
 }
 NOTAS_REGIME = {
-    "simples_unico": [
-        ("Recolhimento", "IBS e CBS recolhidos dentro do DAS (LC 123/2006, com as alterações da LC 214/2025). A classificação desta planilha identifica a natureza de cada item e deve ser informada nos documentos fiscais conforme a NT vigente para o CRT do Simples Nacional."),
-        ("Benefícios", "Itens com redução ou alíquota zero exigem a segregação da receita no PGDAS-D. Conferir a regulamentação do CGSN vigente sobre o reflexo das reduções no cálculo do DAS."),
-        ("Crédito do adquirente", "O adquirente sujeito ao regime regular apropria crédito correspondente ao IBS/CBS efetivamente recolhido no DAS na operação, e não ao valor cheio. Avaliar com clientes B2B a opção pelo regime híbrido (LC 214/2025, art. 41, § 3º)."),
-    ],
-    "simples_hibrido": [
-        ("Recolhimento", "Opção pelo recolhimento do IBS e da CBS pelo regime regular (LC 214/2025, art. 41, § 3º): os demais tributos seguem no DAS; IBS/CBS são apurados fora, de forma não cumulativa."),
-        ("Aplicação", "A classificação desta planilha (CST, cClassTrib e reduções) aplica-se integralmente, como nas empresas do regime regular, com crédito pleno ao adquirente."),
+    "simples": [
+        ("Duas visões", "Este arquivo traz a classificação do cliente nas duas modalidades do Simples Nacional: Simples puro (regime único, IBS/CBS no DAS) na aba Importacao_ERP_Unico, e Simples híbrido (IBS/CBS pelo regime regular) na aba Importacao_ERP_Hibrido. O ERP deve importar a aba do regime efetivamente adotado no período. A aba Comparativo_Simples resume as diferenças."),
+        ("Classificação", "CST, cClassTrib e percentuais de redução são os mesmos nas duas visões: identificam a natureza do item. O que muda é a forma de recolhimento, a apuração e o crédito transferido ao adquirente. Conferir na NT vigente o preenchimento do grupo IBSCBS para o CRT do Simples Nacional em cada modalidade."),
+        ("Único – recolhimento", "IBS e CBS recolhidos dentro do DAS (LC 123/2006, com as alterações da LC 214/2025). A classificação desta planilha identifica a natureza de cada item e deve ser informada nos documentos fiscais conforme a NT vigente para o CRT do Simples Nacional."),
+        ("Único – benefícios", "Itens com redução ou alíquota zero exigem a segregação da receita no PGDAS-D. Conferir a regulamentação do CGSN vigente sobre o reflexo das reduções no cálculo do DAS."),
+        ("Único – crédito do adquirente", "O adquirente sujeito ao regime regular apropria crédito correspondente ao IBS/CBS efetivamente recolhido no DAS na operação, e não ao valor cheio. Avaliar com clientes B2B a opção pelo regime híbrido (LC 214/2025, art. 41, § 3º)."),
+        ("Híbrido – recolhimento", "Opção pelo recolhimento do IBS e da CBS pelo regime regular (LC 214/2025, art. 41, § 3º): os demais tributos seguem no DAS; IBS/CBS são apurados fora, de forma não cumulativa."),
+        ("Híbrido – aplicação", "A classificação (CST, cClassTrib e reduções) aplica-se integralmente, como nas empresas do regime regular, com crédito pleno ao adquirente e direito a crédito nas aquisições."),
     ],
     "mei": [
         ("Recolhimento", "MEI recolhe valores fixos mensais. Conferir na regulamentação vigente a obrigatoriedade de preenchimento dos grupos de IBS/CBS nos documentos fiscais emitidos."),
@@ -66,14 +65,41 @@ NOTAS_REGIME = {
 }
 
 
+OBS_SIMPLES = ("Simples puro: segregar a receita deste item no PGDAS-D para refletir o benefício. "
+               "Simples híbrido: benefício aplicado diretamente na alíquota do item.")
+
+# Colunas próprias de cada visão do Simples nas abas de importação: (cabeçalho, largura, tipo, valor)
+ERP_SIMPLES = {
+    "Unico": [("REGIME_IBS_CBS", 16, "const", "SIMPLES_UNICO"), ("RECOLHIMENTO_IBS_CBS", 16, "const", "DAS"),
+              ("SEGREGAR_RECEITA_PGDAS", 14, "seg", ""), ("CREDITO_ADQUIRENTE", 18, "const", "LIMITADO_AO_DAS")],
+    "Hibrido": [("REGIME_IBS_CBS", 16, "const", "SIMPLES_HIBRIDO"), ("RECOLHIMENTO_IBS_CBS", 16, "const", "REGIME_REGULAR"),
+                ("APURACAO", 14, "const", "NAO_CUMULATIVA"), ("CREDITO_ADQUIRENTE", 18, "cred", "")],
+}
+LEIAUTE_SIMPLES = [
+    ("REGIME_IBS_CBS", "Modalidade do Simples Nacional da aba", "Texto", "até 16", "Sim", "SIMPLES_UNICO (aba Importacao_ERP_Unico) ou SIMPLES_HIBRIDO (aba Importacao_ERP_Hibrido). Importar só a aba do regime adotado."),
+    ("RECOLHIMENTO_IBS_CBS", "Onde o IBS/CBS é recolhido", "Texto", "até 16", "Sim", "DAS (único) ou REGIME_REGULAR (híbrido, fora do DAS)."),
+    ("SEGREGAR_RECEITA_PGDAS", "Somente visão Único", "Texto", "3", "Sim", "SIM quando o item tem redução ou alíquota zero: a receita deve ser segregada no PGDAS-D."),
+    ("APURACAO", "Somente visão Híbrido", "Texto", "até 16", "Sim", "NAO_CUMULATIVA: IBS/CBS apurados com crédito das aquisições."),
+    ("CREDITO_ADQUIRENTE", "Crédito transferido ao comprador", "Texto", "até 16", "Sim", "LIMITADO_AO_DAS (único); INTEGRAL ou SEM_DESTAQUE quando alíquota zero (híbrido)."),
+]
+COMPARATIVO = [
+    ("Recolhimento do IBS/CBS", "Dentro do DAS, conforme anexo e faixa da LC 123/2006", "Fora do DAS, pelas alíquotas do regime regular (LC 214/2025, art. 41, § 3º)"),
+    ("Apuração", "Sem crédito de IBS/CBS sobre as aquisições", "Não cumulativa: crédito do IBS/CBS pago nas aquisições"),
+    ("Crédito ao adquirente", "Limitado ao IBS/CBS efetivamente recolhido no DAS na operação", "Integral, sobre o IBS/CBS destacado no documento"),
+    ("Benefícios por item (reduções, alíquota zero)", "Refletidos pela segregação de receitas no PGDAS-D (conferir regulamentação do CGSN)", "Aplicados diretamente na alíquota do item (cClassTrib)"),
+    ("Demais tributos (IRPJ, CSLL, CPP, ICMS/ISS na transição)", "No DAS", "No DAS (sem alteração)"),
+    ("Obrigações acessórias", "PGDAS-D", "PGDAS-D + apuração e escrituração do IBS/CBS do regime regular"),
+    ("Tende a ser vantajoso quando", "Vendas predominantemente a consumidor final (B2C) e poucas compras com IBS/CBS a creditar", "Vendas a empresas do regime regular (B2B), que valorizam o crédito integral, ou muitas compras com IBS/CBS"),
+    ("Opção", "Regra padrão do optante", "Opção expressa pelo regime regular de IBS/CBS; prazos e periodicidade conforme regulamentação vigente"),
+]
+
+
 def regime_chave(v):
     n = norm(v)
-    if "hibrid" in n:
-        return "simples_hibrido"
     if "mei" in n.split() or "microempreendedor" in n:
         return "mei"
-    if "simples" in n or "unico" in n:
-        return "simples_unico"
+    if "simples" in n or "unico" in n or "hibrid" in n:
+        return "simples"
     if "presumido" in n:
         return "presumido"
     if "real" in n:
@@ -336,8 +362,8 @@ def classificar(item, base, regime):
         res["obs"].append("cClassTrib incompatível com o CST (verificar regra).")
 
     res["obs_regime"] = ""
-    if regime == "simples_unico" and res["trat"] != "Tributação integral":
-        res["obs_regime"] = "Simples (regime único): segregar a receita deste item no PGDAS-D para refletir o benefício."
+    if regime == "simples" and res["trat"] != "Tributação integral":
+        res["obs_regime"] = OBS_SIMPLES
     elif regime == "mei":
         res["obs_regime"] = "MEI: valores fixos; conferir obrigatoriedade de destaque de IBS/CBS."
     return res
@@ -464,24 +490,61 @@ def gerar_excel(itens, base, args, regime, divergencias, destino):
         dv = DataValidation(type="list", formula1=f1, allow_blank=True)
         wc.add_data_validation(dv); dv.add(f"{L[col]}2:{L[col]}{last}")
 
-    # ---------------- Importacao_ERP
-    we = wb.create_sheet("Importacao_ERP", 1)
-    cabecalho(we, 1, [(h, w) for h, w, _ in ERP])
+    # ---------------- Importacao_ERP (uma aba; ou duas visões para o Simples Nacional)
     CF = "Cadastro_Fiscal"
-    for k in range(2, len(itens) + 2):
-        for j, (h, _, src) in enumerate(ERP, 1):
-            if src.endswith("%"):
-                col = L[src[:-1]]
-                f = f'=IF({CF}!${col}{k}="","",ROUND({CF}!${col}{k}*100,2))'
-            elif src == "cat#":
-                f = f'=IF({CF}!${L["cat"]}{k}="","",TEXT(MATCH({CF}!${L["cat"]}{k},Listas!$A$2:$A$8,0),"00"))'
-            else:
-                f = f'=IF({CF}!${L[src]}{k}="","",{CF}!${L[src]}{k}&"")'
-            x = we.cell(row=k, column=j, value=f); x.font = fB; x.border = BD
-            x.number_format = "0.00" if src.endswith("%") else "@"
-    we.freeze_panes = "B2"
-    we.auto_filter.ref = f"A1:{get_column_letter(len(ERP))}{last}"
-    cor_status(we, f"{get_column_letter(len(ERP))}2:{get_column_letter(len(ERP))}{last}")
+    abas_erp = [("Importacao_ERP", [])] if regime != "simples" else \
+        [("Importacao_ERP_Unico", ERP_SIMPLES["Unico"]), ("Importacao_ERP_Hibrido", ERP_SIMPLES["Hibrido"])]
+    for nome_aba, extras in abas_erp:
+        we = wb.create_sheet(nome_aba)
+        cols = [(h, w, src) for h, w, src in ERP[:-1]] + [(h, w, (tp, val)) for h, w, tp, val in extras] + [ERP[-1]]
+        cabecalho(we, 1, [(h, w) for h, w, _ in cols])
+        ri = L["ri"]
+        for k in range(2, len(itens) + 2):
+            for j, (h, _, src) in enumerate(cols, 1):
+                fmt = "@"
+                if isinstance(src, tuple):
+                    tp, val = src
+                    if tp == "const":
+                        f = val
+                    elif tp == "seg":
+                        f = f'=IF({CF}!${ri}{k}="","",IF({CF}!${ri}{k}>0,"SIM","NAO"))'
+                    else:
+                        f = f'=IF({CF}!${ri}{k}="","",IF({CF}!${ri}{k}>=1,"SEM_DESTAQUE","INTEGRAL"))'
+                elif src.endswith("%"):
+                    col = L[src[:-1]]
+                    f = f'=IF({CF}!${col}{k}="","",ROUND({CF}!${col}{k}*100,2))'; fmt = "0.00"
+                elif src == "cat#":
+                    f = f'=IF({CF}!${L["cat"]}{k}="","",TEXT(MATCH({CF}!${L["cat"]}{k},Listas!$A$2:$A$8,0),"00"))'
+                else:
+                    f = f'=IF({CF}!${L[src]}{k}="","",{CF}!${L[src]}{k}&"")'
+                x = we.cell(row=k, column=j, value=f); x.font = fB; x.border = BD; x.number_format = fmt
+        we.freeze_panes = "B2"
+        we.auto_filter.ref = f"A1:{get_column_letter(len(cols))}{last}"
+        cor_status(we, f"{get_column_letter(len(cols))}2:{get_column_letter(len(cols))}{last}")
+
+    # ---------------- Comparativo_Simples
+    if regime == "simples":
+        wq = wb.create_sheet("Comparativo_Simples")
+        titulo(wq, "SIMPLES NACIONAL — REGIME ÚNICO (PURO) x REGIME HÍBRIDO", "C")
+        cabecalho(wq, 3, [("Aspecto", 34), ("Simples puro (regime único)", 55), ("Simples híbrido (IBS/CBS pelo regime regular)", 55)])
+        for k, ln in enumerate(COMPARATIVO, 4):
+            for j, v in enumerate(ln, 1):
+                x = wq.cell(row=k, column=j, value=v); x.font = fBB if j == 1 else fB; x.border = BD; x.alignment = WR
+        k = 4 + len(COMPARATIVO) + 1
+        wq.cell(row=k, column=1, value="Itens deste cliente").font = fS
+        cnt = [("Itens classificados", f"=COUNTA({CF}!${L['cod']}$2:${L['cod']}${last})"),
+               ("Itens com redução ou alíquota zero (segregar no PGDAS-D no regime único)", f'=COUNTIF({CF}!${ri}$2:${ri}${last},">0")'),
+               ("Itens com alíquota zero (sem crédito a transferir no híbrido)", f'=COUNTIF({CF}!${ri}$2:${ri}${last},">=1")'),
+               ("Itens com tributação integral", f'=COUNTIF({CF}!${L["trat"]}$2:${L["trat"]}${last},"Tributação integral")'),
+               ("Itens sujeitos ao Imposto Seletivo", f'=COUNTIF({CF}!${L["is"]}$2:${L["is"]}${last},"S")')]
+        for i, (a, b) in enumerate(cnt, k + 1):
+            x = wq.cell(row=i, column=1, value=a); x.font = fB; x.border = BD; x.alignment = WR
+            y = wq.cell(row=i, column=2, value=b); y.font = fBB; y.border = BD
+        n = k + 1 + len(cnt) + 1
+        wq.cell(row=n, column=1, value=("A escolha entre os regimes depende do faturamento B2B x B2C, das margens e do volume de compras "
+                                         "com IBS/CBS a creditar. Para decidir com números, simular os dois cenários com os dados do cliente.")).font = Font(name=FN, size=9, italic=True)
+        wq.merge_cells(start_row=n, start_column=1, end_row=n + 1, end_column=3)
+        wq.cell(row=n, column=1).alignment = WR
 
     wl = wb.create_sheet("Listas")
     wl["A1"] = "CATEGORIA_IS"; wl["B1"] = "CODIGO"
@@ -547,13 +610,14 @@ def gerar_excel(itens, base, args, regime, divergencias, destino):
 
     # ---------------- Leiaute_Importacao
     wy = wb.create_sheet("Leiaute_Importacao", 4)
-    titulo(wy, "LEIAUTE PARA IMPORTAÇÃO NO ERP — ABA Importacao_ERP", "F")
+    titulo(wy, "LEIAUTE PARA IMPORTAÇÃO NO ERP — " + ("ABAS Importacao_ERP_Unico / _Hibrido" if regime == "simples" else "ABA Importacao_ERP"), "F")
     cabecalho(wy, 3, [("Campo", 20), ("Descrição", 46), ("Tipo", 12), ("Tamanho", 10), ("Obrigatório", 12),
                       ("Destino no documento fiscal / observação", 70)])
-    for k, ln in enumerate(LEIAUTE, 4):
+    lay = LEIAUTE[:-1] + (LEIAUTE_SIMPLES if regime == "simples" else []) + LEIAUTE[-1:]
+    for k, ln in enumerate(lay, 4):
         for j, v in enumerate(ln, 1):
             x = wy.cell(row=k, column=j, value=v); x.font = fB; x.border = BD; x.alignment = WR
-    k = 4 + len(LEIAUTE) + 1
+    k = 4 + len(lay) + 1
     for t in ORIENTACOES:
         wy.cell(row=k, column=1, value=t).font = fBB if t.endswith(":") else fB; k += 1
 
@@ -577,6 +641,10 @@ def gerar_excel(itens, base, args, regime, divergencias, destino):
     cor_status(wi, f"B3:B{k}")
     wi.sheet_view.showGridLines = False
 
+    ordem = ["Instrucoes", "Cadastro_Fiscal", "Importacao_ERP", "Importacao_ERP_Unico", "Importacao_ERP_Hibrido",
+             "Comparativo_Simples", "Resumo", "Divergencias_Riscos", "Leiaute_Importacao", "Tabela_Referencia", "Listas"]
+    wb._sheets.sort(key=lambda w: ordem.index(w.title))
+    wb.active = 0
     wb.calculation.fullCalcOnLoad = True
     wb.save(destino)
 
@@ -619,7 +687,10 @@ def instrucoes(cliente, regime_txt, escr, hoje, arquivo, versao, regime):
         blocos.append(("REGIME DO CLIENTE", NOTAS_REGIME[regime]))
     blocos += [
         ("CONTEÚDO DO ARQUIVO", [("Cadastro_Fiscal", "Classificação item a item: CST, cClassTrib, reduções, tratamento, base legal, condição do benefício, IS, status e observações."),
-                                 ("Importacao_ERP", "Aba para os programadores: somente os campos de importação, em formato técnico."),
+                                 ("Importacao_ERP" if regime != "simples" else "Importacao_ERP_Unico / _Hibrido",
+                                  "Aba(s) para os programadores: somente os campos de importação, em formato técnico." if regime != "simples" else
+                                  "Uma aba por modalidade do Simples (puro e híbrido). Os programadores importam a do regime adotado."),
+                                 *([("Comparativo_Simples", "Diferenças entre Simples puro e híbrido e contagem de itens afetados.")] if regime == "simples" else []),
                                  ("Resumo", "Totais por status, por tratamento e por NCM."),
                                  ("Divergencias_Riscos", "Itens que exigem atenção, risco envolvido e ação recomendada."),
                                  ("Leiaute_Importacao", "Especificação dos campos para o ERP."),
@@ -695,7 +766,7 @@ def main():
     ap = argparse.ArgumentParser(description="Classificação de produtos e serviços IBS/CBS/IS a partir do cadastro do cliente.")
     ap.add_argument("arquivo", help="Excel/CSV do cliente, XML de NF-e ou pasta com XMLs")
     ap.add_argument("--cliente", default="")
-    ap.add_argument("--regime", default="", help="Simples Nacional - Regime Único | Simples Nacional - Híbrido | MEI | Lucro Presumido | Lucro Real")
+    ap.add_argument("--regime", default="", help="Simples Nacional (gera puro e híbrido) | MEI | Lucro Presumido | Lucro Real")
     ap.add_argument("--base", default=BASE_PADRAO)
     ap.add_argument("--saida", default=None)
     args = ap.parse_args()

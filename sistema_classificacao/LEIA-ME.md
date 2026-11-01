@@ -21,8 +21,7 @@ Depois de editar a `base_regras.xlsx`, você pode simplesmente carregá-la na p�
 
 | Regime | Tratamento no arquivo gerado |
 |---|---|
-| Simples Nacional – Regime Único | Mesma classificação (natureza do item) + orientação de segregação no PGDAS-D para itens com benefício e nota sobre o crédito limitado do adquirente |
-| Simples Nacional – Híbrido | Classificação aplicada integralmente, como no regime regular (art. 41, § 3º) |
+| Simples Nacional | Gera as **duas visões** no mesmo arquivo: `Importacao_ERP_Unico` (Simples puro: IBS/CBS no DAS, coluna SEGREGAR_RECEITA_PGDAS, crédito LIMITADO_AO_DAS) e `Importacao_ERP_Hibrido` (IBS/CBS pelo regime regular, apuração não cumulativa, crédito INTEGRAL ou SEM_DESTAQUE), mais a aba `Comparativo_Simples` |
 | MEI | Nota sobre recolhimento em valores fixos |
 | Lucro Presumido / Real | Regime regular de IBS/CBS: classificação aplicada integralmente |
 
@@ -54,7 +53,8 @@ Cliente envia Excel/CSV/XML  →  classificar.py + base_regras.xlsx  →  revis�
 |---|---|---|
 | Instrucoes | Cliente | Identificação, base normativa, legenda, premissas e limitações |
 | Cadastro_Fiscal | Escritório/cliente | Classificação completa item a item, com base legal, condição do benefício, status e observações |
-| Importacao_ERP | Programadores | Somente os campos de importação, em formato técnico |
+| Importacao_ERP (ou _Unico / _Hibrido no Simples) | Programadores | Somente os campos de importação, em formato técnico |
+| Comparativo_Simples | Cliente do Simples | Diferenças entre Simples puro e híbrido e contagem de itens afetados |
 | Resumo | Cliente | Totais por status, tratamento e NCM |
 | Divergencias_Riscos | Escritório/cliente | Pendências, riscos e ações recomendadas |
 | Leiaute_Importacao | Programadores | Especificação dos campos e orientações de importação |

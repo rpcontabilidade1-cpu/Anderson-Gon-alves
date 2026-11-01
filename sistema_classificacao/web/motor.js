@@ -6,22 +6,11 @@
   var CAT_IS = ["Veículos", "Embarcações e aeronaves", "Produtos fumígenos", "Bebidas alcoólicas",
     "Bebidas açucaradas", "Bens minerais", "Concursos de prognósticos e fantasy sport"];
   var REGIMES = {
-    simples_unico: "Simples Nacional – Regime Único (IBS/CBS no DAS)",
-    simples_hibrido: "Simples Nacional – Regime Híbrido (IBS/CBS pelo regime regular)",
+    simples: "Simples Nacional – Regime Único e Regime Híbrido (duas visões)",
     mei: "MEI", presumido: "Lucro Presumido", real: "Lucro Real", "": "não informado"
   };
-  var NOTAS_REGIME = {
-    simples_unico: [
-      ["Recolhimento", "IBS e CBS recolhidos dentro do DAS (LC 123/2006, com as alterações da LC 214/2025). A classificação desta planilha identifica a natureza de cada item e deve ser informada nos documentos fiscais conforme a NT vigente para o CRT do Simples Nacional."],
-      ["Benefícios", "Itens com redução ou alíquota zero exigem a segregação da receita no PGDAS-D. Conferir a regulamentação do CGSN vigente sobre o reflexo das reduções no cálculo do DAS."],
-      ["Crédito do adquirente", "O adquirente sujeito ao regime regular apropria crédito correspondente ao IBS/CBS efetivamente recolhido no DAS na operação, e não ao valor cheio. Avaliar com clientes B2B a opção pelo regime híbrido (LC 214/2025, art. 41, § 3º)."]],
-    simples_hibrido: [
-      ["Recolhimento", "Opção pelo recolhimento do IBS e da CBS pelo regime regular (LC 214/2025, art. 41, § 3º): os demais tributos seguem no DAS; IBS/CBS são apurados fora, de forma não cumulativa."],
-      ["Aplicação", "A classificação desta planilha (CST, cClassTrib e reduções) aplica-se integralmente, como nas empresas do regime regular, com crédito pleno ao adquirente."]],
-    mei: [["Recolhimento", "MEI recolhe valores fixos mensais. Conferir na regulamentação vigente a obrigatoriedade de preenchimento dos grupos de IBS/CBS nos documentos fiscais emitidos."]],
-    presumido: [["Aplicação", "Regime regular de IBS/CBS (não cumulativo), independentemente da forma de tributação do IRPJ/CSLL. A classificação aplica-se integralmente."]],
-    real: [["Aplicação", "Regime regular de IBS/CBS (não cumulativo). A classificação aplica-se integralmente."]]
-  };
+  var OBS_SIMPLES = "Simples puro: segregar a receita deste item no PGDAS-D para refletir o benefício. " +
+    "Simples híbrido: benefício aplicado diretamente na alíquota do item.";
 
   // ------------------------------------------------------------------ utilidades
   function txt(v) {
@@ -52,9 +41,8 @@
 
   function regimeChave(v) {
     var n = norm(v);
-    if (n.indexOf("hibrid") >= 0) return "simples_hibrido";
     if (n.split(" ").indexOf("mei") >= 0 || n.indexOf("microempreendedor") >= 0) return "mei";
-    if (n.indexOf("simples") >= 0 || n.indexOf("unico") >= 0) return "simples_unico";
+    if (n.indexOf("simples") >= 0 || n.indexOf("unico") >= 0 || n.indexOf("hibrid") >= 0) return "simples";
     if (n.indexOf("presumido") >= 0) return "presumido";
     if (n.indexOf("real") >= 0) return "real";
     return "";
@@ -228,8 +216,7 @@
     if ((item.cst_cli || item.cct_cli) && (item.cst_cli !== res.cst || item.cct_cli !== res.cct))
       res.obs.push("Cliente usa CST " + (item.cst_cli || "-") + " / cClassTrib " + (item.cct_cli || "-") + ": diverge da proposta.");
     if (res.cct && res.cct.slice(0, 3) !== res.cst) { res.status = ST_REV; res.obs.push("cClassTrib incompatível com o CST (verificar regra)."); }
-    if (regime === "simples_unico" && res.trat !== "Tributação integral")
-      res.obs_regime = "Simples (regime único): segregar a receita deste item no PGDAS-D para refletir o benefício.";
+    if (regime === "simples" && res.trat !== "Tributação integral") res.obs_regime = OBS_SIMPLES;
     else if (regime === "mei") res.obs_regime = "MEI: valores fixos; conferir obrigatoriedade de destaque de IBS/CBS.";
     return res;
   }
@@ -280,7 +267,7 @@
     return out;
   }
 
-  var api = { ST_OK: ST_OK, ST_CONF: ST_CONF, ST_REV: ST_REV, ST_NCM: ST_NCM, CAT_IS: CAT_IS, REGIMES: REGIMES, NOTAS_REGIME: NOTAS_REGIME,
+  var api = { ST_OK: ST_OK, ST_CONF: ST_CONF, ST_REV: ST_REV, ST_NCM: ST_NCM, CAT_IS: CAT_IS, REGIMES: REGIMES, OBS_SIMPLES: OBS_SIMPLES,
     txt: txt, norm: norm, digitos: digitos, cod: cod, regimeChave: regimeChave, prepararBase: prepararBase, lerFolhas: lerFolhas,
     lerXmlNfe: lerXmlNfe, classificar: classificar, processar: processar, divergencias: divergencias };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.Motor = api;

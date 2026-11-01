@@ -51,6 +51,7 @@ def textos_json():
     tok = ("{{CLIENTE}}", "{{REGIME}}", "{{ESCR}}", "{{DATA}}", "{{ARQ}}", "{{VERSAO}}")
     return {
         "CAD": C.CAD, "ERP": C.ERP, "LEIAUTE": C.LEIAUTE, "ORIENTACOES": C.ORIENTACOES, "SIGNIF": C.SIGNIF,
+        "ERP_SIMPLES": C.ERP_SIMPLES, "LEIAUTE_SIMPLES": C.LEIAUTE_SIMPLES, "COMPARATIVO": C.COMPARATIVO,
         "INSTRUCOES": {k: C.instrucoes(*tok, k) for k in C.REGIMES},
     }
 
