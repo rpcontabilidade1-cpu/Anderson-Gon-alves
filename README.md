@@ -32,11 +32,30 @@ Planilha (`Classificacao_Produtos_Reforma_Tributaria_IBS_CBS_IS.xlsx`) de **impo
 
 1. **Instrucoes** — finalidade, base normativa, passo a passo, legenda, regras de validação e riscos.
 2. **Importacao** — layout de importação (1.000 linhas): colunas A–M de entrada (código, descrição, tipo, NCM, NBS, CEST, unidade, GTIN, CST IBS/CBS, cClassTrib, IS) e colunas N–V calculadas (descrição do cClassTrib, fundamento legal, % de redução, alíquotas efetivas, inconsistências e status OK/PENDENTE).
-3. **Layout** — especificação técnica de cada campo (tipo, tamanho, obrigatoriedade, tag XML relacionada).
-4. **Resumo** — totais de itens, pendências, itens sujeitos ao IS e distribuição por CST.
-5. **Parametros** — ano de referência e alíquotas estimadas de CBS/IBS na transição 2026–2033.
-6. **Tabela_CST** / **Tabela_cClassTrib** — tabelas de referência (substituíveis pela versão oficial vigente).
-7. **Anexos_LC214** — Anexos I a XV e XVII com redução aplicável e cClassTrib usual.
-8. **Listas** — listas suspensas (tipo de item e categorias do Imposto Seletivo).
+3. **Exportacao** — linhas prontas para importação (somente itens com Status OK) em três formatos: CSV (`;`), TXT delimitado (`|campo|`) e TXT posicional (207 posições). Copiar a faixa indicada, colar no Bloco de Notas e salvar como .csv/.txt.
+4. **Layout** — especificação técnica de cada campo e leiaute dos arquivos CSV/TXT (posições inicial/final no TXT posicional e códigos das categorias do IS).
+5. **Resumo** — totais de itens, pendências, itens sujeitos ao IS e distribuição por CST.
+6. **Parametros** — ano de referência e alíquotas estimadas de CBS/IBS na transição 2026–2033.
+7. **Tabela_CST** / **Tabela_cClassTrib** — tabelas de referência (substituíveis pela versão oficial vigente).
+8. **Anexos_LC214** — Anexos I a XV e XVII com redução aplicável e cClassTrib usual.
+9. **Listas** — listas suspensas (tipo de item e categorias do Imposto Seletivo).
+
+## Exportação automática (CSV e TXT)
+
+```bash
+pip install openpyxl
+python exportar_classificacao.py Classificacao_Produtos_Reforma_Tributaria_IBS_CBS_IS.xlsx
+```
+
+Gera na pasta `exportacao/`:
+
+| Arquivo | Formato |
+|---|---|
+| `classificacao_ibs_cbs.csv` | `;`, cabeçalho, decimal `,`, UTF-8, CRLF |
+| `classificacao_ibs_cbs_delimitado.txt` | `\|campo\|campo\|` (padrão SPED), sem cabeçalho, UTF-8 |
+| `classificacao_ibs_cbs_posicional.txt` | largura fixa de 207 posições, ANSI (Windows-1252) |
+| `pendencias.csv` | itens não exportados e o motivo |
+
+Opções: `--saida`, `--decimal .`, `--enc-csv utf-8-sig`, `--enc-txt cp1252`, `--enc-pos utf-8`, `--sem-cabecalho`, `--sem-acentos`, `--lf`. O script aplica as mesmas regras de validação da planilha e gera saída idêntica à da aba Exportacao.
 
 > Os códigos cClassTrib marcados "CONFERIR" devem ser confirmados na tabela oficial vigente (Portal NF-e / Conformidade Fácil) antes do uso em produção.

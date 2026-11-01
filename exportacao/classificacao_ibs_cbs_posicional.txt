@@ -1,0 +1,8 @@
+PRD0001             Arroz beneficiado polido tipo 1 - pacote 5 kg                                                                           B10063021         1702100PCT   7890000000017 2002000031000010000N00
+PRD0002             Tomate in natura                                                                                                        B07020000                KG                  2002000141000010000N00
+PRD0003             Sabonete em barra 90 g                                                                                                  B34011190         2001600UN    7890000000024 2002000350600006000N00
+PRD0004             Absorvente higiênico externo c/ 8 un                                                                                    B96190000                PCT   7890000000031 2002000131000010000N00
+PRD0005             Medicamento genérico registrado Anvisa                                                                                  B30049099         1300100CX    7890000000048 2002000320600006000N00
+PRD0006             Notebook 15,6 pol.                                                                                                      B84713012                UN    7890000000055 0000000010000000000N00
+PRD0007             Refrigerante PET 2 L                                                                                                    B22021000         0300700UN    7890000000062 0000000010000000000S05
+PRD0008             Cerveja lata 350 ml                                                                                                     B22030000         0302100UN    7890000000079 0000000010000000000S04
