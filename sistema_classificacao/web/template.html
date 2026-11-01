@@ -1,0 +1,682 @@
+<title>Classificador IBS/CBS</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: livro-razão — coluna de controle à esquerda (cliente, regime, arquivos, base) e o razão de itens à direita; empilha no celular. */
+:root {
+  --bg: #f3f5f2; --surface: #ffffff; --sunken: #eaeeea; --ink: #16201b; --muted: #58655e; --line: #d6ddd7;
+  --accent: #0b6650; --accent-ink: #ffffff; --accent-soft: #dcefe7;
+  --ok-bg: #dff2e6; --ok-fg: #17673b; --conf-bg: #fbefd2; --conf-fg: #7d5200; --rev-bg: #f9e0df; --rev-fg: #9a2226;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", "IBM Plex Sans", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1412; --surface: #161d1a; --sunken: #1c2521; --ink: #e3eae6; --muted: #98a69f; --line: #2a3530;
+  --accent: #4cc29f; --accent-ink: #062018; --accent-soft: #173a30;
+  --ok-bg: #163926; --ok-fg: #8fe0ad; --conf-bg: #3a2f12; --conf-fg: #f1cf7c; --rev-bg: #3f1b1c; --rev-fg: #f4a6a6; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f1412; --surface: #161d1a; --sunken: #1c2521; --ink: #e3eae6; --muted: #98a69f; --line: #2a3530;
+  --accent: #4cc29f; --accent-ink: #062018; --accent-soft: #173a30;
+  --ok-bg: #163926; --ok-fg: #8fe0ad; --conf-bg: #3a2f12; --conf-fg: #f1cf7c; --rev-bg: #3f1b1c; --rev-fg: #f4a6a6; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); margin: 0; }
+.wrap { max-width: 1440px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px;
+  padding-bottom: 16px; border-bottom: 2px solid var(--ink); margin-bottom: 20px; }
+h1 { font: 700 clamp(26px, 4vw, 34px)/1.05 var(--font-display); letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 0; font-size: 14px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--font-mono); padding: 6px 10px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--muted); }
+.chip b { color: var(--ink); font-weight: 500; }
+.grid { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 14px; }
+.panel h2, .sec h2 { font: 600 12px/1 var(--font-body); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 0; }
+label { display: grid; gap: 6px; font-size: 13px; font-weight: 500; }
+input[type=text], select { font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 8px 10px; width: 100%; }
+input:focus-visible, select:focus-visible, button:focus-visible, .drop:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.drop { border: 1.5px dashed var(--line); border-radius: var(--r); padding: 18px 12px; text-align: center; cursor: pointer;
+  background: var(--bg); display: grid; gap: 4px; transition: border-color .15s, background .15s; }
+.drop.over, .drop:hover { border-color: var(--accent); background: var(--accent-soft); }
+.drop strong { font-weight: 600; }
+.drop span { color: var(--muted); font-size: 12.5px; }
+.files { font: 12px/1.4 var(--font-mono); color: var(--muted); display: grid; gap: 2px; max-height: 96px; overflow: auto; }
+button { font: 600 14px/1 var(--font-body); border-radius: var(--r); padding: 11px 14px; cursor: pointer; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.small { font-size: 12.5px; color: var(--muted); margin: 0; }
+.base-box { border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 8px; }
+.row-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.row-btns button { padding: 8px 10px; font-size: 13px; }
+.meter { height: 6px; background: var(--sunken); border-radius: 3px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--accent); }
+
+.sec { display: grid; gap: 14px; min-width: 0; }
+.banner { background: var(--accent-soft); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 14px; font-size: 14px; }
+.headline { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.headline h2 { font: 600 20px/1.2 var(--font-display); text-transform: none; letter-spacing: 0; color: var(--ink); }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat { display: grid; gap: 2px; min-width: 120px; padding: 10px 12px; border-radius: var(--r); border: 1px solid var(--line);
+  background: var(--surface); text-align: left; font-weight: 400; }
+.stat .n { font: 600 22px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.stat .l { font-size: 12px; color: var(--muted); }
+.stat[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.stat.s-ok .n { color: var(--ok-fg); } .stat.s-conf .n { color: var(--conf-fg); } .stat.s-rev .n { color: var(--rev-fg); }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tools input { max-width: 320px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 1080px; font-size: 13px; }
+th { position: sticky; top: 0; background: var(--sunken); text-align: left; font-weight: 600; font-size: 11.5px; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+td.code { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.desc { min-width: 220px; }
+td.obs { color: var(--muted); font-size: 12.5px; min-width: 260px; max-width: 420px; }
+td select { font-family: var(--font-mono); font-size: 12.5px; padding: 4px 6px; width: auto; max-width: 150px; background: var(--surface); }
+.pill { display: inline-block; font: 600 11px/1 var(--font-body); letter-spacing: .03em; padding: 4px 8px; border-radius: 999px; white-space: nowrap; }
+.p-ok { background: var(--ok-bg); color: var(--ok-fg); } .p-conf { background: var(--conf-bg); color: var(--conf-fg); }
+.p-rev { background: var(--rev-bg); color: var(--rev-fg); }
+.tag { font: 500 11px/1 var(--font-mono); color: var(--muted); }
+.is { font: 600 10.5px/1 var(--font-body); color: var(--rev-fg); border: 1px solid currentColor; border-radius: 4px; padding: 2px 4px; margin-left: 4px; }
+.more { color: var(--muted); font-size: 13px; }
+.notes { font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+.notes summary { cursor: pointer; color: var(--ink); font-weight: 500; }
+.msg { font-size: 13.5px; padding: 8px 12px; border-radius: var(--r); }
+.msg.err { background: var(--rev-bg); color: var(--rev-fg); } .msg.ok { background: var(--ok-bg); color: var(--ok-fg); }
+.legend { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; font-size: 13px; align-items: center; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Classificador IBS/CBS</h1>
+      <p class="sub">Enquadramento de produtos e serviços · EC 132/2023 e LC 214/2025 · CST, cClassTrib, reduções e Imposto Seletivo</p>
+    </div>
+    <span class="chip" id="chipBase">Base: <b>—</b></span>
+  </header>
+
+  <div class="grid">
+    <aside class="panel" aria-label="Dados da classificação">
+      <h2>1 · Cliente</h2>
+      <label for="cliente">Nome do cliente
+        <input type="text" id="cliente" placeholder="Ex.: Mercado Silva Ltda" autocomplete="off">
+      </label>
+      <label for="regime">Regime tributário
+        <select id="regime">
+          <option value="simples_unico">Simples Nacional – Regime Único (IBS/CBS no DAS)</option>
+          <option value="simples_hibrido">Simples Nacional – Híbrido (IBS/CBS pelo regime regular)</option>
+          <option value="mei">MEI</option>
+          <option value="presumido">Lucro Presumido</option>
+          <option value="real">Lucro Real</option>
+        </select>
+      </label>
+
+      <h2>2 · Arquivo do cliente</h2>
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Selecionar arquivos do cliente">
+        <strong>Arraste os arquivos aqui ou clique</strong>
+        <span>Excel (.xlsx, .xls), CSV ou XMLs de NF-e. Várias abas e vários arquivos são aceitos.</span>
+      </div>
+      <input type="file" id="arquivos" multiple accept=".xlsx,.xlsm,.xls,.csv,.xml" hidden>
+      <div class="files" id="listaArquivos"></div>
+      <button class="primary" id="btnClassificar" disabled>Classificar</button>
+      <div id="msgLeitura"></div>
+      <p class="small">Os arquivos são lidos no seu navegador. Nada é enviado para servidor.</p>
+
+      <div class="base-box">
+        <h2>Base de regras</h2>
+        <div class="meter" aria-hidden="true"><i id="meterBase" style="width:0"></i></div>
+        <p class="small" id="txtBase"></p>
+        <div class="row-btns">
+          <button id="btnBase">Carregar base_regras.xlsx</button>
+          <button id="btnBasePadrao" hidden>Usar base embutida</button>
+        </div>
+        <input type="file" id="arqBase" accept=".xlsx" hidden>
+        <div id="msgBase"></div>
+      </div>
+    </aside>
+
+    <section class="sec" aria-label="Resultado">
+      <div class="banner" id="banner" hidden></div>
+      <div class="headline">
+        <h2 id="titRes">Resultado</h2>
+        <button class="primary" id="btnBaixar" disabled>Baixar Excel do cliente</button>
+      </div>
+      <div id="msgBaixar"></div>
+      <div class="stats" id="stats" role="group" aria-label="Filtrar por status"></div>
+      <div class="tools">
+        <input type="text" id="busca" placeholder="Buscar por código, descrição ou NCM" aria-label="Buscar">
+        <span class="more" id="contagem"></span>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr>
+            <th>Código</th><th>Descrição</th><th>Tipo</th><th>NCM / NBS</th><th>CST</th><th>cClassTrib</th>
+            <th>Tratamento</th><th>Status</th><th>Observação</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <details class="notes">
+        <summary>Como ler o status e revisar</summary>
+        <div class="legend">
+          <span class="pill p-ok">OK</span><span>Regra e código conferidos. Pronto para importação.</span>
+          <span class="pill p-conf">A CONFIRMAR</span><span>Enquadrado por regra ou código ainda não conferido na base de regras.</span>
+          <span class="pill p-rev">REVISAR</span><span>O NCM consta de anexo com benefício, mas a descrição não confirma. Aplicada tributação integral (critério conservador).</span>
+          <span class="pill p-rev">REVISAR NCM</span><span>NCM ausente ou inválido. Para serviço, informe NBS ou tipo "Serviço".</span>
+        </div>
+        <p>Altere o cClassTrib ou o status direto na tabela; o Excel baixado já sai com os ajustes. O CST acompanha os três primeiros dígitos do cClassTrib.</p>
+      </details>
+      <details class="notes" id="detAvisos"><summary>Leitura dos arquivos</summary><div id="avisos"></div></details>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script>/*__MOTOR__*/</script>
+<script>
+"use strict";
+var BASE_EMBUTIDA = /*__BASE__*/null;
+var EXEMPLO = /*__EXEMPLO__*/null;
+var TEXTOS = /*__TEXTOS__*/null;
+var M = window.Motor;
+var LIMITE_TELA = 400;
+var estado = { base: null, baseNome: "", itens: [], avisos: [], cliente: "", regime: "simples_unico", arquivos: [], exemplo: false, filtro: "", busca: "" };
+var $ = function (id) { return document.getElementById(id); };
+
+// ------------------------------------------------------------------ base
+function usarBase(bruto, nome) {
+  estado.base = M.prepararBase(bruto);
+  estado.baseNome = nome;
+  var b = estado.base, pct = b.totalRegras ? Math.round(100 * b.regrasConferidas / b.totalRegras) : 0;
+  $("chipBase").innerHTML = "Base: <b></b>";
+  $("chipBase").querySelector("b").textContent = nome + " · " + b.regrasConferidas + "/" + b.totalRegras + " regras conferidas";
+  $("meterBase").style.width = pct + "%";
+  $("txtBase").textContent = b.totalRegras + " regras, " + Object.keys(b.cct).length + " códigos cClassTrib. " +
+    (b.regrasConferidas ? b.regrasConferidas + " regras conferidas (" + pct + "%)." : "Nenhuma regra conferida ainda: os enquadramentos saem como A CONFIRMAR.") +
+    " Versão da tabela: " + (b.cfg.VERSAO_TABELA_CCLASSTRIB || "não informada") + ".";
+  $("btnBasePadrao").hidden = nome === "embutida";
+}
+function lerBaseSalva() {
+  try { var s = localStorage.getItem("classificador-base"); if (s) { var o = JSON.parse(s); return o; } } catch (e) {}
+  return null;
+}
+function salvarBase(o) { try { localStorage.setItem("classificador-base", JSON.stringify(o)); } catch (e) {} }
+function limparBase() { try { localStorage.removeItem("classificador-base"); } catch (e) {} }
+
+var ABAS_BASE = ["Regras_NCM", "Regras_IS", "Tabela_cClassTrib", "Tabela_CST", "Sinonimos_Colunas", "Config"];
+function baseDeArquivo(buf) {
+  var wb = XLSX.read(buf, { type: "array", cellDates: true }), out = {};
+  ABAS_BASE.forEach(function (a) {
+    if (!wb.Sheets[a]) throw new Error("A aba " + a + " não existe no arquivo. Use a base_regras.xlsx do sistema como modelo.");
+    out[a] = XLSX.utils.sheet_to_json(wb.Sheets[a], { defval: null, raw: true });
+  });
+  return out;
+}
+
+// ------------------------------------------------------------------ leitura dos arquivos do cliente
+function parseCSV(texto) {
+  var amostra = texto.slice(0, 4096), sep = (amostra.split(";").length >= amostra.split(",").length) ? ";" : ",";
+  var rows = [], row = [], cur = "", q = false;
+  for (var i = 0; i < texto.length; i++) {
+    var c = texto[i];
+    if (q) { if (c === '"') { if (texto[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === sep) { row.push(cur); cur = ""; }
+    else if (c === "\n" || c === "\r") { if (c === "\r" && texto[i + 1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = ""; }
+    else cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+function lerArquivo(f) {
+  return new Promise(function (ok, erro) {
+    var r = new FileReader(), nome = f.name.toLowerCase();
+    r.onerror = function () { erro(new Error("Não foi possível ler " + f.name)); };
+    if (nome.endsWith(".xml")) {
+      r.onload = function () {
+        var doc = new DOMParser().parseFromString(r.result, "application/xml");
+        if (doc.getElementsByTagName("parsererror").length) return ok({ itens: [], avisos: ["XML inválido: " + f.name] });
+        var itens = M.lerXmlNfe(doc, f.name);
+        ok({ itens: itens, avisos: [f.name + ": " + itens.length + " item(ns) de NF-e."] });
+      };
+      r.readAsText(f);
+    } else if (nome.endsWith(".csv")) {
+      r.onload = function () {
+        var t = r.result.replace(/^﻿/, "");
+        ok(M.lerFolhas({ CSV: parseCSV(t) }, estado.base));
+      };
+      r.readAsText(f, "utf-8");
+    } else {
+      r.onload = function () {
+        try {
+          var wb = XLSX.read(new Uint8Array(r.result), { type: "array", cellDates: true }), folhas = {};
+          wb.SheetNames.forEach(function (n) {
+            folhas[n] = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: null, blankrows: true });
+          });
+          var res = M.lerFolhas(folhas, estado.base);
+          res.avisos = res.avisos.map(function (a) { return f.name + " · " + a; });
+          ok(res);
+        } catch (e) { ok({ itens: [], avisos: ["Não foi possível abrir " + f.name + ": " + e.message] }); }
+      };
+      r.readAsArrayBuffer(f);
+    }
+  });
+}
+
+// ------------------------------------------------------------------ classificação e ajustes
+function tratamentoPorCodigo(cst, cct) {
+  var ref = estado.base.cct[cct];
+  if (cst === "410") return "Imunidade";
+  if (cst === "400") return "Isenção";
+  if (cst === "620") return "Monofásica";
+  if (cst === "550") return "Suspensão";
+  if (cst === "510" || cst === "515") return "Diferimento";
+  if (ref && ref.ri >= 1) return "Alíquota zero";
+  if (ref && ref.ri > 0) return "Redução " + Math.round(ref.ri * 100) + "%";
+  return cst === "000" ? "Tributação integral" : "Regime específico";
+}
+function ajustarCct(i, cct) {
+  var it = estado.itens[i], r = it.res;
+  if (r.cct === cct) return;
+  r.cct = cct; r.cst = cct.slice(0, 3); r.trat = tratamentoPorCodigo(r.cst, cct);
+  r.lei = "Ajuste manual do escritório – informar base legal"; r.cond = ""; r.regra = "AJUSTE MANUAL";
+  r.obs = r.obs.filter(function (o) { return o.indexOf("Ajustado manualmente") !== 0; });
+  r.obs.unshift("Ajustado manualmente para " + r.cst + "/" + cct + ".");
+  if (estado.regime === "simples_unico") r.obs_regime = r.trat !== "Tributação integral" ? "Simples (regime único): segregar a receita deste item no PGDAS-D para refletir o benefício." : "";
+  render();
+}
+function ajustarStatus(i, st) { estado.itens[i].res.status = st; render(); }
+
+// ------------------------------------------------------------------ interface
+var ST = [[M.ST_OK, "s-ok", "p-ok"], [M.ST_CONF, "s-conf", "p-conf"], [M.ST_REV, "s-rev", "p-rev"], [M.ST_NCM, "s-rev", "p-rev"]];
+function pillClass(st) { for (var k = 0; k < ST.length; k++) if (ST[k][0] === st) return ST[k][2]; return "p-rev"; }
+function el(tag, attrs, texto) {
+  var e = document.createElement(tag);
+  if (attrs) for (var a in attrs) { if (a === "class") e.className = attrs[a]; else e.setAttribute(a, attrs[a]); }
+  if (texto !== undefined && texto !== null) e.textContent = texto;
+  return e;
+}
+function render() {
+  var itens = estado.itens, cont = {}; itens.forEach(function (it) { cont[it.res.status] = (cont[it.res.status] || 0) + 1; });
+  var st = $("stats"); st.textContent = "";
+  var todos = el("button", { class: "stat", "aria-pressed": String(!estado.filtro) });
+  todos.append(el("span", { class: "n" }, itens.length), el("span", { class: "l" }, "itens classificados"));
+  todos.onclick = function () { estado.filtro = ""; render(); };
+  st.append(todos);
+  ST.forEach(function (s) {
+    var b = el("button", { class: "stat " + s[1], "aria-pressed": String(estado.filtro === s[0]) });
+    b.append(el("span", { class: "n" }, cont[s[0]] || 0), el("span", { class: "l" }, s[0]));
+    b.onclick = function () { estado.filtro = estado.filtro === s[0] ? "" : s[0]; render(); };
+    st.append(b);
+  });
+  var q = M.norm(estado.busca);
+  var vis = [];
+  itens.forEach(function (it, i) {
+    if (estado.filtro && it.res.status !== estado.filtro) return;
+    if (q && M.norm(it.codigo + " " + it.descricao + " " + it.ncm + " " + it.nbs).indexOf(q) < 0) return;
+    vis.push(i);
+  });
+  var tb = $("tbody"); tb.textContent = "";
+  var opcoes = Object.keys(estado.base.cct).sort();
+  vis.slice(0, LIMITE_TELA).forEach(function (i) {
+    var it = itens[i], r = it.res, tr = el("tr");
+    tr.append(el("td", { class: "code" }, it.codigo));
+    var tdD = el("td", { class: "desc" }, it.descricao);
+    if (r.is === "S") tdD.append(el("span", { class: "is", title: "Sujeito ao Imposto Seletivo: " + r.cat_is }, "IS"));
+    tr.append(tdD, el("td", null, r.tipo), el("td", { class: "code" }, it.ncm || it.nbs || it.ncm_orig || "—"), el("td", { class: "code" }, r.cst));
+    var tdC = el("td"), sel = el("select", { "aria-label": "cClassTrib do item " + it.codigo });
+    var lista = opcoes.indexOf(r.cct) < 0 && r.cct ? [r.cct].concat(opcoes) : opcoes;
+    if (!r.cct) sel.append(el("option", { value: "" }, "— definir —"));
+    lista.forEach(function (c) { var o = el("option", { value: c }, c); if (c === r.cct) o.selected = true; sel.append(o); });
+    sel.onchange = function () { if (sel.value) ajustarCct(i, sel.value); };
+    tdC.append(sel); tr.append(tdC, el("td", null, r.trat));
+    var tdS = el("td"), ss = el("select", { "aria-label": "Status do item " + it.codigo });
+    ST.forEach(function (s) { var o = el("option", { value: s[0] }, s[0]); if (s[0] === r.status) o.selected = true; ss.append(o); });
+    ss.className = "pill " + pillClass(r.status); ss.style.border = "0";
+    ss.onchange = function () { ajustarStatus(i, ss.value); };
+    tdS.append(ss); tr.append(tdS);
+    tr.append(el("td", { class: "obs" }, [r.obs.join(" · "), r.obs_regime].filter(Boolean).join(" · ") || "—"));
+    tb.append(tr);
+  });
+  $("contagem").textContent = vis.length > LIMITE_TELA ? "Mostrando " + LIMITE_TELA + " de " + vis.length + " itens filtrados. O Excel inclui todos." :
+    vis.length + " de " + itens.length + " itens";
+  $("btnBaixar").disabled = !itens.length;
+  $("titRes").textContent = (estado.cliente || "Resultado") + " · " + M.REGIMES[estado.regime];
+}
+function mostrarAvisos() {
+  var a = $("avisos"); a.textContent = "";
+  estado.avisos.forEach(function (t) { a.append(el("div", null, t)); });
+}
+function msg(alvo, tipo, texto) {
+  var d = $(alvo); d.textContent = "";
+  if (texto) d.append(el("div", { class: "msg " + tipo }, texto));
+}
+
+function classificarItens(itensLidos, avisos) {
+  estado.itens = M.processar(itensLidos, estado.base, estado.regime);
+  estado.avisos = avisos;
+  estado.filtro = ""; render(); mostrarAvisos();
+}
+function carregarExemplo() {
+  estado.exemplo = true; estado.cliente = "Mercadinho Exemplo"; estado.regime = "simples_unico";
+  $("regime").value = estado.regime;
+  var r = M.lerFolhas(EXEMPLO, estado.base);
+  classificarItens(r.itens, r.avisos);
+  var b = $("banner"); b.hidden = false;
+  b.textContent = "Exemplo fictício (Mercadinho Exemplo, Simples Nacional). Envie o arquivo do cliente ao lado para substituir.";
+}
+
+// ------------------------------------------------------------------ eventos
+$("drop").onclick = function () { $("arquivos").click(); };
+$("drop").onkeydown = function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("arquivos").click(); } };
+["dragenter", "dragover"].forEach(function (ev) { $("drop").addEventListener(ev, function (e) { e.preventDefault(); $("drop").classList.add("over"); }); });
+["dragleave", "drop"].forEach(function (ev) { $("drop").addEventListener(ev, function (e) { e.preventDefault(); $("drop").classList.remove("over"); }); });
+$("drop").addEventListener("drop", function (e) { definirArquivos(e.dataTransfer.files); });
+$("arquivos").onchange = function () { definirArquivos(this.files); };
+function definirArquivos(fl) {
+  estado.arquivos = Array.prototype.slice.call(fl || []);
+  var l = $("listaArquivos"); l.textContent = "";
+  estado.arquivos.forEach(function (f) { l.append(el("div", null, f.name + " · " + Math.max(1, Math.round(f.size / 1024)) + " KB")); });
+  $("btnClassificar").disabled = !estado.arquivos.length;
+  msg("msgLeitura", "", "");
+}
+$("btnClassificar").onclick = function () {
+  var btn = this; btn.disabled = true; btn.textContent = "Lendo arquivos…";
+  estado.cliente = $("cliente").value.trim(); estado.regime = $("regime").value;
+  Promise.all(estado.arquivos.map(lerArquivo)).then(function (res) {
+    var itens = [], avisos = [];
+    res.forEach(function (r) { itens = itens.concat(r.itens); avisos = avisos.concat(r.avisos); });
+    if (!itens.length) { msg("msgLeitura", "err", "Nenhum item encontrado. Confira se o arquivo tem coluna de descrição ou NCM. Detalhes em \"Leitura dos arquivos\"."); estado.avisos = avisos; mostrarAvisos(); $("detAvisos").open = true; return; }
+    estado.exemplo = false; $("banner").hidden = true;
+    classificarItens(itens, avisos);
+    msg("msgLeitura", "ok", itens.length + " linhas lidas, " + estado.itens.length + " itens únicos classificados.");
+  }).catch(function (e) { msg("msgLeitura", "err", e.message); })
+    .then(function () { btn.disabled = false; btn.textContent = "Classificar"; });
+};
+$("regime").onchange = function () {
+  estado.regime = this.value;
+  if (estado.itens.length) {
+    estado.itens.forEach(function (it) { if (it.res.regra !== "AJUSTE MANUAL") it.res = M.classificar(it, estado.base, estado.regime); });
+    render();
+  }
+};
+$("cliente").oninput = function () { estado.cliente = this.value.trim(); if (estado.itens.length) render(); };
+$("busca").oninput = function () { estado.busca = this.value; render(); };
+$("btnBase").onclick = function () { $("arqBase").click(); };
+$("arqBase").onchange = function () {
+  var f = this.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function () {
+    try {
+      var bruto = baseDeArquivo(new Uint8Array(r.result));
+      usarBase(bruto, f.name); salvarBase({ nome: f.name, bruto: bruto });
+      msg("msgBase", "ok", "Base carregada. Clique em Classificar para reprocessar o arquivo do cliente.");
+      if (estado.exemplo) carregarExemplo();
+    } catch (e) { msg("msgBase", "err", e.message); }
+  };
+  r.readAsArrayBuffer(f);
+};
+$("btnBasePadrao").onclick = function () {
+  limparBase(); usarBase(BASE_EMBUTIDA, "embutida"); msg("msgBase", "ok", "Voltou para a base embutida.");
+  if (estado.exemplo) carregarExemplo();
+};
+$("btnBaixar").onclick = function () { baixarExcel(); };
+
+// ------------------------------------------------------------------ Excel para o cliente
+var AR = "Arial", CINZA = "FF595959", AZUL = "FF1F3864", CLARO = "FFD9E1F2";
+var BORDA = { style: "thin", color: { argb: "FFBFBFBF" } };
+var BD = { top: BORDA, left: BORDA, bottom: BORDA, right: BORDA };
+var COR_ST = {}; COR_ST[M.ST_OK] = ["FFC6EFCE", "FF006100"]; COR_ST[M.ST_CONF] = ["FFFFEB9C", "FF9C5700"];
+COR_ST[M.ST_REV] = ["FFFFC7CE", "FF9C0006"]; COR_ST[M.ST_NCM] = ["FFFFC7CE", "FF9C0006"];
+function letra(n) { var s = ""; while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
+function cel(ws, r, c, v, o) {
+  var x = ws.getCell(r, c); x.value = (v === "" ? null : v);
+  x.font = { name: AR, size: 10, bold: !!(o && o.bold) }; x.border = BD;
+  if (o && o.fmt) x.numFmt = o.fmt;
+  if (o && o.wrap) x.alignment = { wrapText: true, vertical: "top" };
+  return x;
+}
+function cab(ws, linha, cols, fills) {
+  cols.forEach(function (c, i) {
+    var x = ws.getCell(linha, i + 1); x.value = c[0];
+    x.font = { name: AR, size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+    x.fill = { type: "pattern", pattern: "solid", fgColor: { argb: fills ? fills[i] : AZUL } };
+    x.alignment = { horizontal: "center", vertical: "middle", wrapText: true }; x.border = BD;
+    ws.getColumn(i + 1).width = c[1];
+  });
+  ws.getRow(linha).height = 32;
+}
+function titulo(ws, texto, ultima) {
+  ws.mergeCells("A1:" + ultima + "1");
+  var c = ws.getCell("A1"); c.value = texto;
+  c.font = { name: AR, size: 14, bold: true, color: { argb: "FFFFFFFF" } };
+  c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: AZUL } };
+  c.alignment = { vertical: "middle", indent: 1 }; ws.getRow(1).height = 28;
+}
+function corStatus(ws, ref) {
+  ws.addConditionalFormatting({ ref: ref, rules: Object.keys(COR_ST).map(function (st, k) {
+    return { type: "cellIs", operator: "equal", priority: k + 1, formulae: ['"' + st + '"'],
+      style: { fill: { type: "pattern", pattern: "solid", bgColor: { argb: COR_ST[st][0] } }, font: { bold: true, color: { argb: COR_ST[st][1] } } } };
+  }) });
+}
+function f(formula, result) { return { formula: formula, result: result === "" ? undefined : result }; }
+
+function montarWorkbook() {
+  var b = estado.base, itens = estado.itens, T = TEXTOS, hoje = new Date();
+  var dataBR = ("0" + hoje.getDate()).slice(-2) + "/" + ("0" + (hoje.getMonth() + 1)).slice(-2) + "/" + hoje.getFullYear();
+  var versao = b.cfg.VERSAO_TABELA_CCLASSTRIB || "", last = Math.max(itens.length + 1, 2);
+  var wb = new ExcelJS.Workbook(); wb.creator = "Classificador IBS/CBS"; wb.calcProperties.fullCalcOnLoad = true;
+  var wi = wb.addWorksheet("Instrucoes", { views: [{ showGridLines: false }] });
+  var wc = wb.addWorksheet("Cadastro_Fiscal", { views: [{ state: "frozen", xSplit: 2, ySplit: 1 }] });
+  var we = wb.addWorksheet("Importacao_ERP", { views: [{ state: "frozen", xSplit: 1, ySplit: 1 }] });
+  var ws = wb.addWorksheet("Resumo");
+  var wd = wb.addWorksheet("Divergencias_Riscos", { views: [{ state: "frozen", xSplit: 1, ySplit: 1 }] });
+  var wy = wb.addWorksheet("Leiaute_Importacao");
+  var wr = wb.addWorksheet("Tabela_Referencia", { views: [{ state: "frozen", ySplit: 1 }] });
+  var wl = wb.addWorksheet("Listas"); wl.state = "hidden";
+
+  // Tabela_Referencia
+  cab(wr, 1, [["CCLASSTRIB", 12], ["CST", 7], ["DESCRICAO", 70], ["PRED_IBS", 10], ["PRED_CBS", 10], ["CONFERIDO", 11]]);
+  var usados = {}; itens.forEach(function (it) { if (it.res.cct) usados[it.res.cct] = 1; });
+  Object.keys(b.cct).forEach(function (c) { usados[c] = 1; });
+  var codigos = Object.keys(usados).sort(), refIdx = {};
+  codigos.forEach(function (c, k) {
+    var d = b.cct[c] || { desc: "NÃO CONSTA DA TABELA DA BASE", ri: 0, rc: 0, conf: false };
+    refIdx[c] = d;
+    [c, c.slice(0, 3), d.desc, d.ri, d.rc, d.conf ? "S" : "N"].forEach(function (v, j) {
+      cel(wr, k + 2, j + 1, v, { fmt: j < 2 ? "@" : (j === 3 || j === 4 ? "0%" : undefined) });
+    });
+  });
+  var refLast = codigos.length + 1, r0 = refLast + 3;
+  wr.getCell(r0 - 1, 1).value = "TABELA CST IBS/CBS"; wr.getCell(r0 - 1, 1).font = { name: AR, size: 11, bold: true, color: { argb: AZUL } };
+  [[1, "CST"], [3, "DESCRICAO"]].forEach(function (p) {
+    var x = wr.getCell(r0, p[0]); x.value = p[1]; x.font = { name: AR, size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+    x.fill = { type: "pattern", pattern: "solid", fgColor: { argb: AZUL } }; x.border = BD;
+  });
+  var csts = Object.keys(b.cst).sort();
+  csts.forEach(function (c, k) { cel(wr, r0 + 1 + k, 1, c, { fmt: "@" }); cel(wr, r0 + 1 + k, 3, b.cst[c]); });
+  var ci = r0 + 1, cf = r0 + csts.length;
+  wr.getCell(cf + 2, 1).value = "Versão da tabela: " + versao; wr.getCell(cf + 2, 1).font = { name: AR, size: 9, italic: true };
+
+  // Cadastro_Fiscal
+  var CAD = T.CAD, L = {}; CAD.forEach(function (c, i) { L[c[0]] = letra(i + 1); });
+  cab(wc, 1, CAD.map(function (c) { return [c[1], c[2]]; }), CAD.map(function (c) { return c[3] ? CINZA : AZUL; }));
+  var TEXTO = { cod: 1, ncm: 1, nbs: 1, cest: 1, ean: 1, cfop: 1, cst: 1, cct: 1 }, RT = "Tabela_Referencia";
+  itens.forEach(function (it, n) {
+    var k = n + 2, r = it.res, ref = r.cct ? refIdx[r.cct] : null;
+    var m = "MATCH($" + L.cct + k + "," + RT + "!$A$2:$A$" + refLast + ",0)";
+    var v = {
+      cod: it.codigo, desc: it.descricao, tipo: r.tipo, ncm: it.ncm || it.ncm_orig, nbs: it.nbs, cest: it.cest, ean: it.ean,
+      un: it.unidade, cfop: it.cfop, cst: r.cst, cct: r.cct, trat: r.trat, lei: r.lei, cond: r.cond, is: r.is, cat: r.cat_is,
+      st: r.status, obs: r.obs.join(" | "), oreg: r.obs_regime, regra: r.regra,
+      ant: [it.cst_cli, it.cct_cli].filter(Boolean).join("/"), orig: it.origem, ver: versao,
+      dcst: f('IFERROR(INDEX(' + RT + '!$C$' + ci + ':$C$' + cf + ',MATCH($' + L.cst + k + ',' + RT + '!$A$' + ci + ':$A$' + cf + ',0)),"CST não localizado")', b.cst[r.cst] || "CST não localizado"),
+      dcct: f('IF($' + L.cct + k + '="","",IFERROR(INDEX(' + RT + '!$C$2:$C$' + refLast + ',' + m + '),"cClassTrib não localizado"))', ref ? ref.desc : ""),
+      ri: f('IF($' + L.cct + k + '="","",IFERROR(INDEX(' + RT + '!$D$2:$D$' + refLast + ',' + m + '),""))', ref ? ref.ri : ""),
+      rc: f('IF($' + L.cct + k + '="","",IFERROR(INDEX(' + RT + '!$E$2:$E$' + refLast + ',' + m + '),""))', ref ? ref.rc : ""),
+      chk: f('IF($' + L.cct + k + '="","PENDENTE",IF(LEFT($' + L.cct + k + ',3)=$' + L.cst + k + ',"OK","ERRO"))', !r.cct ? "PENDENTE" : (r.cct.slice(0, 3) === r.cst ? "OK" : "ERRO"))
+    };
+    CAD.forEach(function (c, j) {
+      var key = c[0];
+      cel(wc, k, j + 1, v[key], { fmt: TEXTO[key] ? "@" : (key === "ri" || key === "rc" ? "0%" : undefined), wrap: key === "obs" || key === "oreg" });
+    });
+    [["cst", RT + "!$A$" + ci + ":$A$" + cf], ["cct", RT + "!$A$2:$A$" + refLast], ["st", '"' + [M.ST_OK, M.ST_CONF, M.ST_REV, M.ST_NCM].join(",") + '"'],
+     ["tipo", '"Bem,Serviço"'], ["is", '"S,N"']].forEach(function (p) {
+      wc.getCell(L[p[0]] + k).dataValidation = { type: "list", allowBlank: true, formulae: [p[1]] };
+    });
+  });
+  wc.autoFilter = "A1:" + letra(CAD.length) + last;
+  corStatus(wc, L.st + "2:" + L.st + last);
+  wc.addConditionalFormatting({ ref: L.chk + "2:" + L.chk + last, rules: [{ type: "cellIs", operator: "equal", priority: 9, formulae: ['"ERRO"'],
+    style: { fill: { type: "pattern", pattern: "solid", bgColor: { argb: "FFFFC7CE" } } } }] });
+
+  // Listas
+  wl.getCell("A1").value = "CATEGORIA_IS"; wl.getCell("B1").value = "CODIGO";
+  M.CAT_IS.forEach(function (c, k) { wl.getCell(k + 2, 1).value = c; var x = wl.getCell(k + 2, 2); x.value = ("0" + (k + 1)).slice(-2); x.numFmt = "@"; });
+
+  // Importacao_ERP
+  var ERP = T.ERP, CF = "Cadastro_Fiscal";
+  cab(we, 1, ERP.map(function (e) { return [e[0], e[1]]; }));
+  itens.forEach(function (it, n) {
+    var k = n + 2, r = it.res, ref = r.cct ? refIdx[r.cct] : null;
+    var val = { cod: it.codigo, desc: it.descricao, tipo: r.tipo, ncm: it.ncm || it.ncm_orig, nbs: it.nbs, cest: it.cest, ean: it.ean,
+      un: it.unidade, cst: r.cst, cct: r.cct, is: r.is, st: r.status };
+    ERP.forEach(function (e, j) {
+      var src = e[2], x;
+      if (src.slice(-1) === "%") {
+        var col = L[src.slice(0, -1)], pv = ref ? (src[1] === "i" ? ref.ri : ref.rc) : "";
+        x = cel(we, k, j + 1, f('IF(' + CF + '!$' + col + k + '="","",ROUND(' + CF + '!$' + col + k + '*100,2))', pv === "" ? "" : Math.round(pv * 10000) / 100), { fmt: "0.00" });
+      } else if (src === "cat#") {
+        var ix = M.CAT_IS.indexOf(r.cat_is);
+        x = cel(we, k, j + 1, f('IF(' + CF + '!$' + L.cat + k + '="","",TEXT(MATCH(' + CF + '!$' + L.cat + k + ',Listas!$A$2:$A$8,0),"00"))', ix >= 0 ? ("0" + (ix + 1)).slice(-2) : ""), { fmt: "@" });
+      } else {
+        x = cel(we, k, j + 1, f('IF(' + CF + '!$' + L[src] + k + '="","",' + CF + '!$' + L[src] + k + '&"")', val[src] || ""), { fmt: "@" });
+      }
+    });
+  });
+  we.autoFilter = "A1:" + letra(ERP.length) + last;
+  corStatus(we, letra(ERP.length) + "2:" + letra(ERP.length) + last);
+
+  // Resumo
+  titulo(ws, "RESUMO DA CLASSIFICAÇÃO", "E");
+  [44, 12, 12, 34, 40].forEach(function (w, i) { ws.getColumn(i + 1).width = w; });
+  var rng = function (key) { return CF + "!$" + L[key] + "$2:$" + L[key] + "$" + last; };
+  var cont = function (campo, val) { return itens.filter(function (it) { return it.res[campo] === val; }).length; };
+  var info = [["Cliente", estado.cliente || "-"], ["Regime tributário", M.REGIMES[estado.regime]], ["Data da classificação", dataBR],
+    ["Versão da tabela cClassTrib", versao], ["Itens classificados", f("COUNTA(" + rng("cod") + ")", itens.filter(function (it) { return it.codigo; }).length)],
+    ["Itens sujeitos ao Imposto Seletivo", f('COUNTIF(' + rng("is") + ',"S")', cont("is", "S"))]];
+  info.forEach(function (p, k) { cel(ws, k + 3, 1, p[0], { bold: true }).border = {}; cel(ws, k + 3, 2, p[1]); });
+  var total = itens.filter(function (it) { return it.codigo; }).length;
+  var r = 10;
+  ws.getCell(r, 1).value = "Por status"; ws.getCell(r, 1).font = { name: AR, size: 11, bold: true, color: { argb: AZUL } };
+  cab(ws, r + 1, [["Status", 44], ["Qtde", 12], ["%", 12], ["Significado", 34]]);
+  Object.keys(T.SIGNIF).forEach(function (st, k) {
+    var row = r + 2 + k, q = cont("status", st);
+    cel(ws, row, 1, st); cel(ws, row, 2, f('COUNTIF(' + rng("st") + ',A' + row + ')', q));
+    cel(ws, row, 3, f("IF($B$7=0,0,B" + row + "/$B$7)", total ? q / total : 0), { fmt: "0.0%" }); cel(ws, row, 4, T.SIGNIF[st]);
+  });
+  corStatus(ws, "A" + (r + 2) + ":A" + (r + 5));
+  r = r + 7;
+  ws.getCell(r, 1).value = "Por tratamento tributário"; ws.getCell(r, 1).font = { name: AR, size: 11, bold: true, color: { argb: AZUL } };
+  cab(ws, r + 1, [["Tratamento", 44], ["Qtde", 12], ["%", 12]]);
+  var trats = Object.keys(itens.reduce(function (a, it) { a[it.res.trat] = 1; return a; }, {})).sort();
+  trats.forEach(function (t, k) {
+    var row = r + 2 + k, q = cont("trat", t);
+    cel(ws, row, 1, t); cel(ws, row, 2, f('COUNTIF(' + rng("trat") + ',A' + row + ')', q));
+    cel(ws, row, 3, f("IF($B$7=0,0,B" + row + "/$B$7)", total ? q / total : 0), { fmt: "0.0%" });
+  });
+  r = r + 3 + trats.length;
+  ws.getCell(r, 1).value = "Por NCM (situação na data da classificação)"; ws.getCell(r, 1).font = { name: AR, size: 11, bold: true, color: { argb: AZUL } };
+  cab(ws, r + 1, [["NCM / tipo", 44], ["Qtde itens", 12], ["Classificações distintas", 12], ["Classificação predominante (CST/cClassTrib)", 34], ["Situação", 40]]);
+  var porNcm = {};
+  itens.forEach(function (it) {
+    var ch = it.ncm.length === 8 ? it.ncm : (it.res.tipo === "Serviço" ? "(serviço)" : "(sem NCM válido)");
+    (porNcm[ch] = porNcm[ch] || []).push(it.res.cst + "/" + it.res.cct);
+  });
+  Object.keys(porNcm).sort().forEach(function (ncm, k) {
+    var cl = porNcm[ncm], cnt = {}; cl.forEach(function (c) { cnt[c] = (cnt[c] || 0) + 1; });
+    var ks = Object.keys(cnt), pred = ks.reduce(function (a, c) { return cnt[c] > cnt[a] ? c : a; }, ks[0]);
+    var row = r + 2 + k;
+    [ncm, cl.length, ks.length, pred, ks.length > 1 && ncm[0] !== "(" ? "Classificações divergentes no mesmo NCM" : (ks.length === 1 ? "Uniforme" : "-")]
+      .forEach(function (v, j) { cel(ws, row, j + 1, v, { fmt: j === 0 ? "@" : undefined }); });
+  });
+
+  // Divergencias_Riscos
+  var div = M.divergencias(itens);
+  cab(wd, 1, [["CODIGO_PRODUTO", 14], ["DESCRICAO", 40], ["NCM", 10], ["STATUS", 13], ["PROBLEMA", 60], ["RISCO", 45], ["ACAO_RECOMENDADA", 50]]);
+  div.forEach(function (d, k) { d.forEach(function (v, j) { cel(wd, k + 2, j + 1, v, { wrap: true, fmt: j === 2 ? "@" : undefined }); }); });
+  corStatus(wd, "D2:D" + Math.max(div.length + 1, 2));
+  if (div.length) wd.autoFilter = "A1:G" + (div.length + 1);
+
+  // Leiaute_Importacao
+  titulo(wy, "LEIAUTE PARA IMPORTAÇÃO NO ERP — ABA Importacao_ERP", "F");
+  cab(wy, 3, [["Campo", 20], ["Descrição", 46], ["Tipo", 12], ["Tamanho", 10], ["Obrigatório", 12], ["Destino no documento fiscal / observação", 70]]);
+  T.LEIAUTE.forEach(function (ln, k) { ln.forEach(function (v, j) { cel(wy, k + 4, j + 1, v, { wrap: true }); }); });
+  var kk = 4 + T.LEIAUTE.length + 1;
+  T.ORIENTACOES.forEach(function (t) { var x = wy.getCell(kk++, 1); x.value = t; x.font = { name: AR, size: 10, bold: /:$/.test(t) }; });
+
+  // Instrucoes
+  titulo(wi, "CLASSIFICAÇÃO TRIBUTÁRIA DE PRODUTOS E SERVIÇOS — IBS / CBS / IS", "C");
+  wi.getColumn(1).width = 3; wi.getColumn(2).width = 32; wi.getColumn(3).width = 100;
+  var esc = [b.cfg.ESCRITORIO, b.cfg.RESPONSAVEL].filter(Boolean).join(" – ") || "-";
+  var arqs = estado.exemplo ? "Exemplo" : estado.arquivos.map(function (x) { return x.name; }).join(", ");
+  var subs = { "{{CLIENTE}}": estado.cliente || "-", "{{REGIME}}": M.REGIMES[estado.regime], "{{ESCR}}": esc, "{{DATA}}": dataBR, "{{ARQ}}": arqs, "{{VERSAO}}": versao };
+  var k2 = 3;
+  (T.INSTRUCOES[estado.regime] || T.INSTRUCOES[""]).forEach(function (bloco) {
+    wi.mergeCells(k2, 2, k2, 3);
+    var c = wi.getCell(k2, 2); c.value = bloco[0]; c.font = { name: AR, size: 11, bold: true, color: { argb: AZUL } };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: CLARO } }; k2++;
+    bloco[1].forEach(function (p) {
+      var val = p[1]; Object.keys(subs).forEach(function (s) { val = val.split(s).join(subs[s]); });
+      cel(wi, k2, 2, p[0], { bold: true, wrap: true }); cel(wi, k2, 3, val, { wrap: true }); k2++;
+    });
+    k2++;
+  });
+  corStatus(wi, "B3:B" + k2);
+  return wb;
+}
+
+function nomeArquivo() {
+  var d = new Date(), ymd = d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+  var cli = (estado.cliente || "Cliente").normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z0-9_-]+/g, "_").replace(/^_+|_+$/g, "");
+  return (cli || "Cliente") + "_Classificacao_IBS_CBS_" + ymd + ".xlsx";
+}
+var downloadsP = (window.claude && window.claude.use) ? window.claude.use("downloads").catch(function () { return null; }) : Promise.resolve(null);
+function baixarExcel() {
+  var btn = $("btnBaixar"); btn.disabled = true; btn.textContent = "Gerando Excel…"; msg("msgBaixar", "", "");
+  var nome = nomeArquivo();
+  downloadsP.then(function (dl) {
+    if (!dl) throw { code: "unavailable" };
+    return montarWorkbook().xlsx.writeBuffer().then(function (buf) {
+      return dl.save({ filename: nome, data: new Blob([buf]) });
+    });
+  }).then(function () { msg("msgBaixar", "ok", nome + " salvo."); })
+    .catch(function (e) {
+      var c = e && e.code;
+      if (c === "declined") msg("msgBaixar", "", "");
+      else if (c === "rate_limited") msg("msgBaixar", "err", "Já existe uma confirmação de download aberta. Conclua-a e tente de novo.");
+      else if (c === "unavailable" || c === "not_granted" || c === "capability_disabled" || c === "capability_removed")
+        msg("msgBaixar", "err", "O download não está disponível nesta visualização. Abra a página em claude.ai para baixar o Excel.");
+      else msg("msgBaixar", "err", "Não foi possível gerar o Excel: " + ((e && e.message) || c || "erro desconhecido") + ".");
+    })
+    .then(function () { btn.disabled = false; btn.textContent = "Baixar Excel do cliente"; });
+}
+
+// ------------------------------------------------------------------ início
+(function iniciar() {
+  var salva = lerBaseSalva();
+  if (salva && salva.bruto) { try { usarBase(salva.bruto, salva.nome); } catch (e) { usarBase(BASE_EMBUTIDA, "embutida"); } }
+  else usarBase(BASE_EMBUTIDA, "embutida");
+  carregarExemplo();
+})();
+</script>

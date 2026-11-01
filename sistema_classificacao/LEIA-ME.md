@@ -2,6 +2,37 @@
 
 Recebe o cadastro de produtos do cliente, faz o enquadramento (CST IBS/CBS, cClassTrib, reduções, Imposto Seletivo) e devolve um **Excel padronizado** para o cliente entregar aos programadores do ERP.
 
+## Duas formas de usar
+
+| | Navegador (recomendado) | Computador (Python) |
+|---|---|---|
+| Arquivo | `web/classificador.html` (publicado como página no claude.ai) | `classificar.py` + `CLASSIFICAR.bat` |
+| Instalação | Nenhuma | Python 3.8+ e openpyxl |
+| Entradas | .xlsx, .xls, .csv, XMLs de NF-e (vários de uma vez) | .xlsx, .xlsm, .csv, XML ou pasta de XMLs |
+| Revisão | Ajuste de cClassTrib e status na própria tela | No Excel gerado |
+| Base de regras | Embutida, ou carregue a sua `base_regras.xlsx` | `base_regras.xlsx` da pasta |
+
+Os dois aplicam exatamente as mesmas regras (o motor `web/motor.js` é testado contra o `classificar.py`).
+Os arquivos dos clientes são processados no próprio navegador; nada é enviado para servidor.
+
+Depois de editar a `base_regras.xlsx`, você pode simplesmente carregá-la na página (botão "Carregar base_regras.xlsx"), ou regenerar a página com a base embutida: `python ferramentas/gerar_web.py`.
+
+## Regime do cliente
+
+| Regime | Tratamento no arquivo gerado |
+|---|---|
+| Simples Nacional – Regime Único | Mesma classificação (natureza do item) + orientação de segregação no PGDAS-D para itens com benefício e nota sobre o crédito limitado do adquirente |
+| Simples Nacional – Híbrido | Classificação aplicada integralmente, como no regime regular (art. 41, § 3º) |
+| MEI | Nota sobre recolhimento em valores fixos |
+| Lucro Presumido / Real | Regime regular de IBS/CBS: classificação aplicada integralmente |
+
+## Abrangência da base inicial
+
+Bens: Cesta Básica (Anexo I), alimentos 60% (Anexo VII), higiene e limpeza (VIII), insumos agropecuários (IX), hortícolas, frutas e ovos (XV), produtos agropecuários in natura (art. 137), dispositivos médicos e de acessibilidade (IV, V), nutrição enteral (VI), medicamentos, saúde menstrual, livros (imunidade), combustíveis (monofásica) e Imposto Seletivo.
+Serviços (por descrição ou NBS): educação (II), saúde (III), profissões intelectuais (30%), transporte coletivo (isenção), produções artísticas (X), atividades desportivas.
+Itens sem regra específica recebem tributação integral (000/000001).
+NCM gravado como número (7 dígitos, zero à esquerda perdido) é corrigido automaticamente e sinalizado.
+
 ## Fluxo de trabalho
 
 ```
