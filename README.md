@@ -59,3 +59,9 @@ Gera na pasta `exportacao/`:
 Opções: `--saida`, `--decimal .`, `--enc-csv utf-8-sig`, `--enc-txt cp1252`, `--enc-pos utf-8`, `--sem-cabecalho`, `--sem-acentos`, `--lf`. O script aplica as mesmas regras de validação da planilha e gera saída idêntica à da aba Exportacao.
 
 > Os códigos cClassTrib marcados "CONFERIR" devem ser confirmados na tabela oficial vigente (Portal NF-e / Conformidade Fácil) antes do uso em produção.
+
+---
+
+# Sistema de Classificação de Produtos (pasta `sistema_classificacao/`)
+
+Recebe o cadastro do cliente (Excel, CSV ou XML de NF-e), enquadra automaticamente cada produto (CST IBS/CBS, cClassTrib, reduções, IS) com base numa base de regras editável (`base_regras.xlsx`) e devolve um Excel padronizado com aba de importação para os programadores do ERP. Ver `sistema_classificacao/LEIA-ME.md`.
