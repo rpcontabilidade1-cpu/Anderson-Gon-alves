@@ -138,11 +138,11 @@ footer{padding-block:2px 12px;font-size:11px;color:var(--tinta2);max-width:120ch
   <header class="carimbo">
     <div>
       <div class="olho">Estudo preliminar · EP-02 · Revisão R01</div>
-      <h1>Residência térrea — Lote 24, Quadra 92 · Ribeirão Preto/SP</h1>
+      <h1>Residência térrea — Lote 24, Quadra 92 · Belvedere Laranjeiras, Ribeirão Preto/SP</h1>
     </div>
     <dl class="campos">
-      <div><dt>Lote (inferido)</dt><dd>8,17 × 25,00 m</dd></div>
-      <div><dt>Área construída</dt><dd>105,61 m² + 25,00 m²</dd></div>
+      <div><dt>Terreno · mat. 209.741</dt><dd>203,11 m² · 8,17 × 25,00 m</dd></div>
+      <div><dt>Área construída</dt><dd>105,61 m² + 19,00 m²</dd></div>
       <div><dt>Programa</dt><dd>2 suítes · escritório · gourmet</dd></div>
       <div><dt>Data</dt><dd id="dataCarimbo">31/10/2026</dd></div>
     </dl>
@@ -228,7 +228,7 @@ footer{padding-block:2px 12px;font-size:11px;color:var(--tinta2);max-width:120ch
         <section class="aba" id="aba-rev" hidden>
           <div>
             <h2>Revisão técnica R01</h2>
-            <p>Compatibilização do estudo original (R00). Os itens corrigidos já estão no modelo; desligue a chave "Revisão R01" na aba Áreas para comparar.</p>
+            <p>R00 é a planta final consolidada (setembro de 2026). R01 reúne as propostas desta revisão, já desenhadas no modelo; desligue a chave "Revisão R01" na aba Áreas para comparar.</p>
           </div>
           <div>
             <div class="rotulo" style="margin-bottom:6px">Iluminação natural · área de janela ÷ área de piso</div>
@@ -244,7 +244,7 @@ footer{padding-block:2px 12px;font-size:11px;color:var(--tinta2);max-width:120ch
         <section class="aba" id="aba-ind" hidden>
           <div>
             <h2>Índices urbanísticos</h2>
-            <p>Calculados sobre o lote inferido do modelo (8,17 × 25,00 m). Os limites dependem da Lei de Uso e Ocupação do Solo do município.</p>
+            <p>Conforme a planta final consolidada. Os limites dependem da legislação de Ribeirão Preto, do Decreto 090/2023 de aprovação do loteamento e das restrições registradas na matrícula.</p>
           </div>
           <table id="tabInd"><tbody></tbody></table>
           <div>
@@ -264,7 +264,7 @@ footer{padding-block:2px 12px;font-size:11px;color:var(--tinta2);max-width:120ch
     </aside>
   </main>
 
-  <footer>Estudo preliminar para visualização e tomada de decisão. Não substitui o projeto legal, o estrutural e os complementares com ART/RRT. Dimensões do lote, latitude e orientação foram inferidas do modelo e precisam ser confirmadas com a matrícula e o levantamento topográfico.</footer>
+  <footer>Estudo preliminar para visualização e tomada de decisão. Não substitui o projeto legal, o estrutural e os complementares com ART/RRT. Geometria conforme a planta final consolidada (Lote 024, Quadra 092, rua 98, Belvedere Laranjeiras). O azimute do lote ainda não foi levantado em campo.</footer>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -274,8 +274,8 @@ footer{padding-block:2px 12px;font-size:11px;color:var(--tinta2);max-width:120ch
    DADOS DO MODELO (cm). x = largura do lote (0 = divisa esquerda),
    y/z = profundidade (0 = fundos, 2500 = alinhamento da rua).
    ===================================================================== */
-const D = {"paredes": [[-7, 0, 14, 2000, 0, 280], [660, 460, 14, 40, 0, 280], [660, 500, 14, 160, 0, 90], [660, 500, 14, 160, 210, 70], [660, 660, 14, 100, 0, 280], [660, 760, 14, 220, 0, 90], [660, 760, 14, 220, 210, 70], [660, 980, 14, 330, 0, 280], [660, 1310, 14, 90, 0, 90], [660, 1310, 14, 90, 210, 70], [660, 1400, 14, 45, 0, 280], [660, 1445, 14, 100, 0, 90], [660, 1445, 14, 100, 210, 70], [660, 1545, 14, 55, 0, 280], [660, 1600, 14, 130, 0, 90], [660, 1600, 14, 130, 210, 70], [660, 1730, 14, 20, 0, 280], [660, 1750, 14, 30, 0, 360], [660, 1780, 14, 190, 0, 90], [660, 1780, 14, 190, 330, 30], [660, 1970, 14, 30, 0, 360], [0, 453, 40, 14, 0, 280], [40, 453, 100, 14, 0, 150], [40, 453, 100, 14, 230, 50], [140, 453, 40, 14, 0, 280], [180, 453, 287, 14, 240, 40], [467, 453, 200, 14, 0, 280], [0, 293, 40, 14, 0, 280], [40, 293, 100, 14, 0, 150], [40, 293, 100, 14, 230, 50], [140, 293, 40, 14, 0, 280], [173, 300, 14, 60, 0, 280], [173, 360, 14, 70, 210, 70], [173, 430, 14, 30, 0, 280], [173, 460, 14, 150, 0, 280], [173, 610, 14, 70, 210, 70], [0, 673, 180, 14, 0, 280], [180, 673, 240, 14, 240, 40], [420, 673, 247, 14, 0, 280], [120, 1003, 547, 14, 0, 280], [113, 1010, 14, 180, 0, 280], [113, 1190, 14, 80, 210, 70], [113, 1270, 14, 385, 0, 280], [113, 1655, 14, 80, 210, 70], [113, 1735, 14, 15, 0, 280], [400, 1010, 14, 30, 0, 280], [400, 1040, 14, 80, 210, 70], [400, 1120, 14, 25, 0, 280], [407, 1138, 260, 14, 0, 280], [120, 1278, 80, 14, 0, 280], [200, 1278, 90, 14, 210, 70], [290, 1278, 377, 14, 0, 280], [386, 1285, 14, 135, 0, 280], [120, 1413, 360, 14, 0, 280], [480, 1413, 90, 14, 210, 70], [570, 1413, 97, 14, 0, 280], [407, 1551, 260, 14, 0, 280], [400, 1558, 14, 82, 0, 280], [400, 1640, 14, 80, 210, 70], [400, 1720, 14, 30, 0, 280], [0, 1743, 120, 14, 0, 360], [120, 1743, 80, 14, 210, 150], [200, 1743, 27, 14, 0, 360], [227, 1743, 153, 14, 240, 120], [380, 1743, 287, 14, 0, 360], [220, 1750, 14, 20, 0, 360], [220, 1770, 14, 80, 210, 150], [220, 1850, 14, 20, 0, 360], [220, 1870, 14, 80, 210, 150], [220, 1950, 14, 50, 0, 360], [373, 1840, 14, 160, 0, 360], [227, 1833, 153, 14, 0, 360], [0, 1993, 40, 14, 0, 360], [40, 1993, 90, 14, 210, 150], [130, 1993, 290, 14, 0, 360], [420, 1993, 220, 14, 0, 90], [420, 1993, 220, 14, 210, 150], [640, 1993, 27, 14, 0, 360]],
-"vidros": [[664, 500, 6, 160, 90, 120], [664, 760, 6, 220, 90, 120], [664, 1310, 6, 90, 90, 120], [664, 1445, 6, 100, 90, 120], [664, 1600, 6, 130, 90, 120], [664, 1780, 6, 190, 90, 240], [40, 457, 100, 6, 150, 80], [40, 297, 100, 6, 150, 80], [420, 1997, 220, 6, 90, 120]],
+const D = {"paredes": [[-7, 0, 14, 2000, 0, 280], [660, 460, 14, 40, 0, 280], [660, 500, 14, 160, 0, 90], [660, 500, 14, 160, 210, 70], [660, 660, 14, 100, 0, 280], [660, 760, 14, 220, 0, 90], [660, 760, 14, 220, 210, 70], [660, 980, 14, 60, 0, 280], [660, 1040, 14, 80, 0, 150], [660, 1040, 14, 80, 210, 70], [660, 1120, 14, 35, 0, 280], [660, 1155, 14, 120, 0, 90], [660, 1155, 14, 120, 210, 70], [660, 1275, 14, 35, 0, 280], [660, 1310, 14, 90, 0, 90], [660, 1310, 14, 90, 210, 70], [660, 1400, 14, 45, 0, 280], [660, 1445, 14, 100, 0, 90], [660, 1445, 14, 100, 210, 70], [660, 1545, 14, 55, 0, 280], [660, 1600, 14, 130, 0, 90], [660, 1600, 14, 130, 210, 70], [660, 1730, 14, 20, 0, 280], [660, 1750, 14, 30, 0, 360], [660, 1780, 14, 190, 0, 90], [660, 1780, 14, 190, 330, 30], [660, 1970, 14, 30, 0, 360], [0, 453, 40, 14, 0, 280], [40, 453, 100, 14, 0, 150], [40, 453, 100, 14, 230, 50], [140, 453, 40, 14, 0, 280], [180, 453, 287, 14, 240, 40], [467, 453, 200, 14, 0, 280], [0, 293, 40, 14, 0, 280], [40, 293, 100, 14, 0, 150], [40, 293, 100, 14, 230, 50], [140, 293, 40, 14, 0, 280], [173, 300, 14, 60, 0, 280], [173, 360, 14, 70, 210, 70], [173, 430, 14, 30, 0, 280], [173, 460, 14, 150, 0, 280], [173, 610, 14, 70, 210, 70], [0, 673, 180, 14, 0, 280], [180, 673, 240, 14, 240, 40], [420, 673, 247, 14, 0, 280], [120, 1003, 547, 14, 0, 280], [113, 1010, 14, 180, 0, 280], [113, 1190, 14, 80, 210, 70], [113, 1270, 14, 385, 0, 280], [113, 1655, 14, 80, 210, 70], [113, 1735, 14, 15, 0, 280], [400, 1010, 14, 30, 0, 280], [400, 1040, 14, 80, 210, 70], [400, 1120, 14, 25, 0, 280], [407, 1138, 260, 14, 0, 280], [120, 1278, 80, 14, 0, 280], [200, 1278, 90, 14, 210, 70], [290, 1278, 377, 14, 0, 280], [386, 1285, 14, 135, 0, 280], [120, 1413, 360, 14, 0, 280], [480, 1413, 90, 14, 210, 70], [570, 1413, 97, 14, 0, 280], [407, 1551, 260, 14, 0, 280], [400, 1558, 14, 82, 0, 280], [400, 1640, 14, 80, 210, 70], [400, 1720, 14, 30, 0, 280], [0, 1743, 120, 14, 0, 360], [120, 1743, 80, 14, 210, 150], [200, 1743, 27, 14, 0, 360], [227, 1743, 153, 14, 0, 360], [380, 1743, 287, 14, 0, 360], [220, 1750, 14, 20, 0, 360], [220, 1770, 14, 80, 210, 150], [220, 1850, 14, 20, 0, 360], [220, 1870, 14, 80, 210, 150], [220, 1950, 14, 50, 0, 360], [373, 1840, 14, 160, 0, 360], [227, 1833, 153, 14, 0, 360], [0, 1993, 40, 14, 0, 360], [40, 1993, 90, 14, 210, 150], [130, 1993, 135, 14, 0, 360], [265, 1993, 80, 14, 0, 150], [265, 1993, 80, 14, 210, 150], [345, 1993, 75, 14, 0, 360], [420, 1993, 220, 14, 0, 90], [420, 1993, 220, 14, 210, 150], [640, 1993, 27, 14, 0, 360]],
+"vidros": [[664, 500, 6, 160, 90, 120], [664, 760, 6, 220, 90, 120], [664, 1040, 6, 80, 150, 60], [664, 1155, 6, 120, 90, 120], [265, 1997, 80, 6, 150, 60], [664, 1310, 6, 90, 90, 120], [664, 1445, 6, 100, 90, 120], [664, 1600, 6, 130, 90, 120], [664, 1780, 6, 190, 90, 240], [40, 457, 100, 6, 150, 80], [40, 297, 100, 6, 150, 80], [420, 1997, 220, 6, 90, 120]],
 "moveis": [[400, 1930, 160, 70, 0, 75, "mesa"], [385, 1830, 50, 100, 0, 75, "mesa"], [455, 1858, 58, 58, 0, 90, "cadeira"], [560, 1790, 56, 56, 0, 85, "cadeira"], [560, 1872, 56, 56, 0, 85, "cadeira"], [240, 1760, 130, 50, 0, 120, "armario"], [185, 1800, 35, 120, 0, 85, "armario"], [8, 1790, 40, 90, 0, 45, "armario"], [245, 1930, 38, 60, 0, 40, "vaso"], [320, 1950, 55, 45, 0, 85, "pia"], [180, 1430, 160, 200, 0, 50, "cama"], [180, 1420, 160, 12, 0, 110, "cabeceira"], [132, 1430, 45, 40, 0, 50, "criado"], [343, 1430, 45, 40, 0, 50, "criado"], [200, 1712, 140, 36, 0, 60, "armario"], [200, 1700, 140, 6, 100, 65, "tv"], [565, 1452, 75, 75, 0, 80, "poltrona"], [527, 1657, 140, 88, 0, 200, "box"], [420, 1560, 120, 50, 0, 85, "pia"], [600, 1560, 40, 62, 0, 40, "vaso"], [400, 1292, 258, 56, 0, 220, "armario"], [130, 1362, 256, 56, 0, 220, "armario"], [130, 1077, 190, 140, 0, 50, "cama"], [120, 1077, 12, 140, 0, 110, "cabeceira"], [130, 1030, 45, 40, 0, 50, "criado"], [362, 1085, 42, 120, 0, 60, "armario"], [396, 1085, 6, 120, 100, 60, "tv"], [570, 1190, 75, 75, 0, 80, "poltrona"], [565, 1015, 95, 125, 0, 200, "box"], [500, 1078, 38, 58, 0, 40, "vaso"], [418, 1015, 80, 50, 0, 85, "pia"], [440, 915, 210, 90, 0, 80, "sofa"], [450, 684, 180, 26, 0, 45, "armario"], [450, 678, 180, 6, 95, 70, "tv"], [490, 820, 100, 55, 0, 42, "mesa"], [340, 898, 78, 78, 0, 80, "poltrona"], [607, 465, 58, 210, 0, 90, "bancada"], [467, 462, 140, 58, 0, 90, "bancada"], [490, 620, 117, 56, 0, 90, "bancada"], [417, 606, 73, 70, 0, 180, "geladeira"], [182, 462, 60, 140, 0, 220, "armario"], [3, 465, 65, 65, 0, 90, "geladeira"], [75, 465, 55, 55, 0, 90, "bancada"], [3, 622, 92, 56, 0, 90, "bancada"], [0, 210, 62, 90, 0, 220, "churrasq"], [3, 106, 56, 100, 0, 90, "bancada"], [255, 200, 90, 160, 0, 75, "mesa"], [180, 225, 44, 44, 0, 90, "cadeira"], [180, 291, 44, 44, 0, 90, "cadeira"], [376, 225, 44, 44, 0, 90, "cadeira"], [376, 291, 44, 44, 0, 90, "cadeira"], [278, 125, 44, 44, 0, 90, "cadeira"], [278, 391, 44, 44, 0, 90, "cadeira"], [8, 308, 88, 88, 0, 200, "box"], [112, 312, 38, 56, 0, 40, "vaso"], [105, 402, 68, 42, 0, 85, "pia"], [200, 2020, 190, 450, 0, 150, "carro"], [430, 2020, 190, 450, 0, 150, "carro"],
   [420, 800, 230, 180, 0, 1, "tapete"], [150, 1530, 220, 150, 0, 1, "tapete"], [140, 1100, 160, 170, 0, 1, "tapete"],
   [24, 694, 34, 34, 0, 150, "planta"], [176, 1760, 34, 34, 0, 130, "planta"], [624, 1757, 32, 32, 0, 120, "planta"], [392, 116, 36, 36, 0, 140, "planta"],
@@ -285,30 +285,29 @@ const D = {"paredes": [[-7, 0, 14, 2000, 0, 280], [660, 460, 14, 40, 0, 280], [6
 
 /* Revisão R01: paredes e vidros substituídos (comparáveis com a chave "Revisão R01"). */
 const REV = {
-  remW: ["660,760,14,220,0,90", "660,980,14,330,0,280", "660,1400,14,45,0,280", "660,1445,14,100,0,90", "660,1445,14,100,210,70"],
-  addW: [[660,980,14,175,0,280],[660,1155,14,120,0,60],[660,1155,14,120,220,60],[660,1275,14,35,0,280],
-         [660,1400,14,35,0,280],[660,1435,14,110,210,70],[227,1743,153,14,0,240]],
-  remV: ["664,760,6,220,90,120", "664,1445,6,100,90,120"],
+  remW: ["660,760,14,220,0,90", "660,1155,14,120,0,90", "660,1155,14,120,210,70", "660,1400,14,45,0,280", "660,1445,14,100,0,90", "660,1445,14,100,210,70"],
+  addW: [[660,1155,14,120,0,60],[660,1155,14,120,220,60],[660,1400,14,35,0,280],[660,1435,14,110,210,70]],
+  remV: ["664,760,6,220,90,120", "664,1155,6,120,90,120", "664,1445,6,100,90,120"],
   addV: [[664,760,6,220,0,210],[664,1435,6,110,0,210],[664,1155,6,120,60,160]]
 };
 
 /* Ambientes: r = retângulo principal, x2 = extensão em L, sub = área descontada.
    cam = [x, z, rumo] com rumo 0 = olhando para a rua, 180 = para os fundos. */
 const AMB = [
-  {n:"WC do gourmet", r:[0,300,173,153], s:"lazer", piso:"azul", pd:270, luz:"C", cam:[60,425,180], d:"Apoio à piscina e ao gourmet"},
-  {n:"Garagem", r:[167,2000,500,500], s:"aberta", piso:"conc", pd:360, cam:[410,2490,180], d:"Duas vagas cobertas sob laje"},
-  {n:"Jardim frontal", r:[0,2000,167,500], s:"ext", piso:"grama", pd:0, cam:[85,2470,180], d:"Caminho de pedestres até o hall"},
+  {n:"Banheiro de apoio", r:[0,300,173,153], s:"lazer", piso:"azul", pd:270, luz:"C", cam:[60,425,180], d:"Apoio à piscina e ao gourmet"},
+  {n:"Garagem", r:[167,2000,500,500], sub:500*120, s:"aberta", piso:"conc", pd:360, cam:[645,2050,200], d:"Duas vagas sob laje de 3,80 m; rasgo de 1,20 m aberto ao céu"},
+  {n:"Jardim frontal", r:[0,2000,167,500], s:"ext", piso:"grama", pd:0, cam:[85,2440,180], d:"Acesso de pedestres pela faixa de 1,67 m"},
   {n:"Hall de entrada", r:[0,1750,220,250], s:"social", piso:"porc", pd:360, cam:[110,1960,180], d:"Porta pivotante, pé-direito de 3,60 m"},
-  {n:"Lavabo", r:[227,1840,153,160], s:"social", piso:"azul", pd:360, luz:"C", cam:[250,1890,60], d:"Atende o hall e o escritório"},
+  {n:"Lavabo", r:[227,1840,153,160], s:"social", piso:"azul", pd:360, luz:"C", cam:[250,1890,60], d:"Janela frontal para o rasgo descoberto"},
   {n:"Escritório", r:[380,1750,287,250], x2:[227,1750,153,90], s:"social", piso:"mad", pd:360, luz:"L", cam:[430,1785,30], d:"De esquina, com duas janelas"},
-  {n:"Corredor", r:[0,1010,120,740], s:"circ", piso:"porc", pd:280, cam:[60,1720,180], d:"1,20 m de largura, claraboia zenital"},
+  {n:"Corredor", r:[0,1010,120,740], s:"circ", piso:"porc", pd:280, cam:[60,1720,180], d:"1,20 m de largura, iluminação zenital em 2,60 m"},
   {n:"Suíte 1", r:[120,1420,287,330], s:"intimo", piso:"mad", pd:280, luz:"L", cam:[360,1680,215], d:"Dormitório principal, cama queen"},
   {n:"Recanto da suíte 1", r:[407,1420,260,138], s:"intimo", piso:"mad", pd:280, cam:[450,1520,80], d:"Leitura junto à porta-janela lateral"},
   {n:"Banho da suíte 1", r:[407,1558,260,192], s:"intimo", piso:"azul", pd:280, luz:"C", cam:[440,1700,115], d:"Box, bancada e bacia"},
   {n:"Closet da suíte 1", r:[393,1285,274,135], s:"intimo", piso:"mad", pd:280, cam:[530,1395,180], d:"Armário linear de 2,58 m"},
   {n:"Closet da suíte 2", r:[120,1285,273,135], s:"intimo", piso:"mad", pd:280, cam:[250,1305,0], d:"Armário linear de 2,56 m"},
-  {n:"Suíte 2", r:[120,1010,287,275], x2:[407,1152,260,126], s:"intimo", piso:"mad", pd:280, luz:"L", cam:[370,1250,220], d:"Cama de casal, janela lateral na R01"},
-  {n:"Banho da suíte 2", r:[407,1010,260,135], s:"intimo", piso:"azul", pd:280, luz:"C", cam:[440,1080,90], d:"Sem janela: exaustão mecânica"},
+  {n:"Suíte 2", r:[120,1010,287,275], x2:[407,1152,260,126], s:"intimo", piso:"mad", pd:280, luz:"L", cam:[370,1250,220], d:"Cabeceira na parede do corredor, janela lateral"},
+  {n:"Banho da suíte 2", r:[407,1010,260,135], s:"intimo", piso:"azul", pd:280, luz:"C", cam:[440,1080,90], d:"Box, gabinete e janela basculante"},
   {n:"Sala de estar", r:[0,680,667,330], s:"social", piso:"porc", pd:280, luz:"L", cam:[100,975,135], d:"Estar e TV, porta-janela na R01"},
   {n:"Cozinha", r:[180,460,487,220], s:"servico", piso:"porc", pd:280, luz:"C", cam:[300,650,120], d:"Bancada em U, pia sob a janela"},
   {n:"Lavanderia", r:[0,460,180,220], s:"servico", piso:"azul", pd:280, luz:"C", cam:[140,650,225], d:"Janela alta para o gourmet"},
@@ -540,13 +539,13 @@ colide([437, 40, 230, 400]);
 
 /* ---------- cobertura, forros, platibandas (ocultos na maquete) ---------- */
 const T = G.teto;
-peca(0, 460, 667, 790, 280, 24, M.forro, T);
-peca(0, 1450, 667, 300, 280, 24, M.forro, T);
-peca(105, 1250, 562, 200, 280, 24, M.forro, T);
-peca(0, 1250, 15, 200, 280, 24, M.forro, T);
-peca(5, 1240, 110, 10, 280, 40, M.concLiso, T); peca(5, 1450, 110, 10, 280, 40, M.concLiso, T);   // claraboia
-peca(5, 1250, 10, 200, 280, 40, M.concLiso, T); peca(105, 1250, 10, 200, 280, 40, M.concLiso, T);
-peca(5, 1240, 110, 220, 320, 3, M.vidro, T, false);
+peca(0, 460, 667, 780, 280, 24, M.forro, T);
+peca(0, 1500, 667, 250, 280, 24, M.forro, T);
+peca(105, 1240, 562, 260, 280, 24, M.forro, T);
+peca(0, 1240, 15, 260, 280, 24, M.forro, T);
+peca(5, 1230, 110, 10, 280, 40, M.concLiso, T); peca(5, 1500, 110, 10, 280, 40, M.concLiso, T);   // claraboia 2,60 m
+peca(5, 1240, 10, 260, 280, 40, M.concLiso, T); peca(105, 1240, 10, 260, 280, 40, M.concLiso, T);
+peca(5, 1230, 110, 280, 320, 3, M.vidro, T, false);
 peca(0, 1750, 667, 250, 360, 24, M.forro, T);
 peca(-7, 293, 187, 167, 280, 24, M.forro, T);
 peca(-7, 453, 14, 1297, 304, 96, M.concLiso, T); peca(660, 453, 14, 1297, 304, 96, M.concLiso, T);
@@ -555,18 +554,24 @@ peca(-7, 1743, 14, 264, 384, 86, M.concLiso, T); peca(660, 1743, 14, 264, 384, 8
 peca(-7, 1993, 681, 14, 384, 86, M.concLiso, T); peca(-7, 1743, 681, 14, 304, 166, M.concLiso, T);
 peca(160, 2280, 160, 90, 304, 130, M.concLiso, T); // caixa d'água sobre a garagem (volume técnico)
 // laje da garagem com pilares e testeira
-peca(167, 2000, 500, 500, 360, 18, M.concLiso, T);
-peca(167, 2486, 500, 14, 330, 70, M.concLiso);
-peca(167, 2472, 14, 14, 0, 330, M.concLiso); peca(653, 2472, 14, 14, 0, 330, M.concLiso);
-colide([167, 2472, 14, 14]); colide([653, 2472, 14, 14]);
+peca(167, 2120, 500, 380, 360, 20, M.concLiso, T);
+peca(167, 2000, 30, 120, 340, 40, M.concLiso); peca(637, 2000, 30, 120, 340, 40, M.concLiso);   // vigas sobre o rasgo
+peca(167, 2120, 500, 380, 380, 30, M.concLiso);                                                  // platibanda a 4,10 m
+peca(167, 2470, 30, 30, 0, 380, M.concLiso); peca(637, 2470, 30, 30, 0, 380, M.concLiso);
+colide([167, 2470, 30, 30]); colide([637, 2470, 30, 30]);
+for (let x = 199; x < 636; x += 11) peca(x, 2488, 6, 4, 4, 236, M.laca);                         // portão ripado
+peca(197, 2486, 440, 8, 240, 6, M.alu); peca(197, 2486, 440, 8, 0, 4, M.alu, null, false);
+colide([197, 2484, 440, 12]);
+peca(0, 2486, 167, 14, 0, 180, M.concLiso); colide([0, 2486, 40, 14]); colide([130, 2486, 37, 14]);  // muro frontal
+peca(40, 2484, 90, 4, 6, 168, M.alu); colide([40, 2484, 90, 10]);                                 // portão social
+peca(667, 2486, 150, 14, 0, 180, M.concLiso); colide([667, 2486, 150, 14]);
 // pergolado do gourmet
 for (let i = 0; i < 12; i++){ const z = 108 + i * 29; peca(z > 290 ? 180 : 0, z, z > 290 ? 257 : 437, 8, 262, 12, M.madeiraE); }
 peca(423, 105, 14, 355, 248, 14, M.madeiraE);
 peca(423, 108, 14, 14, 0, 248, M.madeiraE); peca(423, 440, 14, 14, 0, 248, M.madeiraE);
 colide([423, 108, 14, 14]); colide([423, 440, 14, 14]);
-// ripado da fachada e numeração
-for (let x = 140; x < 410; x += 9) peca(x, 2007, 4, 5, 0, 360, M.madeiraE);
-(() => { const m = new THREE.Mesh(new THREE.PlaneGeometry(.44, .22), M.numero); m.position.set(1.0, 2.2, 20.13); cena.add(m); })();
+// numeração no muro frontal
+(() => { const m = new THREE.Mesh(new THREE.PlaneGeometry(.44, .22), M.numero); m.position.set(1.48, 1.35, 25.005); cena.add(m); })();
 
 /* ---------- paredes, rodapés, esquadrias ---------- */
 const chave = w => w.join(",");
@@ -598,7 +603,6 @@ peca(180, 455, 150, 3, 2, 236, M.vidro, G.revOn, false); peca(185, 462, 150, 3, 
 peca(180, 453, 287, 14, 236, 4, M.alu, G.revOn); peca(180, 453, 287, 14, 0, 2, M.alu, G.revOn, false);
 colide([180, 453, 155, 14], G.revOn);
 // R01: grelha de exaustão no banho da suíte 2
-peca(520, 1100, 30, 30, 278, 2, M.alu, G.revOn, false);
 
 /* ---------- mobiliário ---------- */
 const GM = G.mov;
@@ -1013,7 +1017,7 @@ try { const ab = localStorage.getItem("lote24-aba"); if (ab) document.querySelec
 function alterna(id, fn){ const b = $(id); b.addEventListener("click", () => { const on = b.getAttribute("aria-pressed") !== "true"; b.setAttribute("aria-pressed", String(on)); fn(on); }); }
 alterna("tMov", on => { G.mov.visible = on; rend.shadowMap.needsUpdate = true; });
 alterna("tLuz", on => { lamps.forEach(l => l.intensity = on ? (l.distance > 4 ? .55 : .25) : 0); M.lampada.emissiveIntensity = on ? .9 : .05; });
-alterna("tRev", on => { G.revOn.visible = on; G.revOff.visible = !on; rend.shadowMap.needsUpdate = true; desenhaMiniBase(); if (!livre(px, pz)){ px = 4.1; pz = 24.9; } });
+alterna("tRev", on => { G.revOn.visible = on; G.revOff.visible = !on; rend.shadowMap.needsUpdate = true; desenhaMiniBase(); if (!livre(px, pz)){ px = 6.45; pz = 20.5; } });
 alterna("tCorte", on => { corte = on; aplicaCorte(); if (on && modo === "passeio") setModo("maquete"); });
 G.revOff.visible = false;
 
@@ -1030,7 +1034,7 @@ G.revOff.visible = false;
   });
   html += `<tr class="total"><td colspan="3">Soma dos ambientes fechados (eixos)</td><td class="n">${f2(fech)}</td></tr>`;
   html += `<tr><td colspan="3">Área construída fechada (planta final)</td><td class="n">105,61</td></tr>`;
-  html += `<tr><td colspan="3">Garagem coberta</td><td class="n">25,00</td></tr>`;
+  html += `<tr><td colspan="3">Garagem sob a laje</td><td class="n">19,00</td></tr>`;
   tb.innerHTML = html;
   tb.querySelectorAll("tr[data-i]").forEach(tr => {
     const go = () => irPara(AMB[+tr.dataset.i]);
@@ -1060,45 +1064,44 @@ function janelas(rev){
 })();
 
 const ITENS = [
-  ["R01-1","Suíte 2 sem abertura para o exterior","ok","Corrigido",
-   "No R00 o dormitório não tinha janela, o que reprova o projeto em qualquer código de obras e na NBR 15575-1 (desempenho lumínico). Proposta: janela de correr 1,20 × 1,60 m, peitoril 0,60 m, voltada ao afastamento lateral de 1,50 m."],
-  ["R01-2","Sala com iluminação de 1/8,3","ok","Corrigido",
-   "A janela de 2,20 × 1,20 m não atingia 1/6 para 22 m². Troca por porta-janela de 2,20 × 2,10 m (4,62 m²), com acesso ao jardim lateral."],
-  ["R01-3","Suíte 1 com iluminação de 1/10,9","ok","Corrigido",
-   "A única janela (recanto) tinha 1,20 m² para 13,06 m². Porta-janela de 1,10 × 2,10 m no recanto eleva a razão para cerca de 1/5,7."],
-  ["R01-4","Envoltória aberta entre cozinha e gourmet","ok","Corrigido",
-   "Vão de 2,87 m sem fechamento. Porta de correr em vidro temperado com duas folhas, que mantém a integração quando aberta."],
-  ["R01-5","Vão de 1,53 m entre suíte 1 e escritório","ok","Corrigido",
-   "Abertura comprometia a privacidade da suíte e ficava atrás do rack de TV. Fechada em alvenaria; o escritório segue acessado pelo hall."],
-  ["R01-6","Banho da suíte 2 sem janela","alerta","Recomendação",
-   "Prever exaustão mecânica com duto até a cobertura (vazão usual de 25 a 50 m³/h) e veneziana na porta. Confirmar se o código municipal aceita ventilação mecânica em banheiros."],
-  ["R01-7","Corredor sem luz natural","ok","Incluído",
-   "Claraboia de 0,90 × 2,00 m com domus em policarbonato ou vidro laminado sobre o corredor, coerente com a descrição de iluminação zenital."],
-  ["V-1","Cobertura da garagem no recuo frontal","info","Verificar",
-   "A laje da garagem vai até o alinhamento. Muitos municípios admitem garagem no recuo frontal com limites de altura e área; confirmar na LUOS."],
-  ["V-2","Piscina a 0,40 m da divisa de fundos","info","Verificar",
-   "Há 1,50 m na lateral, mas 0,40 m no fundo. Conferir afastamento exigido e prever impermeabilização e contenção junto ao muro (NBR 10339:2018 para o sistema)."],
-  ["V-3","Parede cega na divisa esquerda","ok","Atende",
-   "Sem aberturas a menos de 1,50 m da divisa, conforme o art. 1.301 do Código Civil. As janelas ficam na lateral direita, com 1,50 m de afastamento."]
+  ["R01-1","Sala de estar com iluminação de 1/8,3","ok","Proposta desenhada",
+   "Janela de 2,20 × 1,20 m (2,64 m²) para 22,01 m² fica abaixo de 1/6. Porta-janela de 2,20 × 2,10 m (4,62 m²) leva a 1/4,8 e abre a sala para a faixa lateral."],
+  ["R01-2","Suíte 1 com iluminação de 1/10,9","ok","Proposta desenhada",
+   "A janela do recanto tem 1,20 m² para 13,06 m². Porta-janela de 1,10 × 2,10 m no recanto eleva a razão para cerca de 1/5,7."],
+  ["R01-3","Suíte 2 com iluminação de 1/7,8","ok","Proposta desenhada",
+   "Janela de 1,20 × 1,20 m para 11,17 m². Com 1,20 × 1,60 m e peitoril de 0,60 m chega a 1/5,8, sem mexer na fachada."],
+  ["R01-4","Passagem entre cozinha e gourmet sem fechamento","ok","Proposta desenhada",
+   "Porta de correr em vidro temperado com duas folhas fecha a envoltória e mantém a integração quando aberta."],
+  ["V-1","Laje da garagem sobre o recuo frontal","info","Pendência 1",
+   "Laje de 3,80 m em concreto computa como área coberta. Confirmar na certidão de uso do solo (cadastro 416.534) e nas restrições do loteamento; alternativas: pórtico vazado, marquise de 1,20 m ou sobrado."],
+  ["V-2","Dimensão da piscina diverge entre os documentos","alerta","Conferir",
+   "A planta e o quadro de índices indicam 2,30 × 4,00 m (9,20 m²); o texto da verificação cita 2,30 × 4,40 m e o orçamento paramétrico, 5,00 × 2,00 m. O modelo segue 2,30 × 4,00 m."],
+  ["V-3","Lavanderia com janela alta para o gourmet coberto","info","Pendência 4",
+   "Ventilação por ambiente coberto precisa ser aceita pelo Código de Obras; alternativa de ventilação zenital."],
+  ["V-4","Piscina no recuo lateral, a 1,50 m do lote 23","info","Pendência 5",
+   "Confirmar se o código e as restrições do loteamento admitem piscina no recuo e o afastamento mínimo. Sistema conforme NBR 10339:2018."],
+  ["V-5","Janelas exatamente a 1,50 m da divisa","ok","CC art. 1.301",
+   "Todas as aberturas laterais atendem o limite do art. 1.301 do Código Civil sem folga; qualquer redução do recuo no executivo inviabiliza essas janelas."],
+  ["V-6","Banheiros e lavabo com janela","ok","Atende",
+   "Nenhum ambiente depende de exaustão mecânica: banho da suíte 2 e lavabo têm janelas basculantes, este voltado ao rasgo frontal."]
 ];
 $("itensRev").innerHTML = ITENS.map(i => `<div class="item"><span class="cod">${i[0]}</span><h3>${i[1]}<span class="pill ${i[2]}">${i[3]}</span></h3><p>${i[4]}</p></div>`).join("");
 
 // índices urbanísticos
 (() => {
-  const lote = LOTE.w * LOTE.l / 1e4, proj = (667*1540 + 500*500 + 187*167) / 1e4, constr = 105.61 + 25;
-  const perm = (150*2500 + 437*105 + (167 - 100)*500) / 1e4;
+  const lote = 203.11, perm = 42.60;
   const linhas = [
-    ["Área do lote", `${f2(lote)} m²`, "8,17 × 25,00 m inferido do modelo; conferir com a matrícula"],
-    ["Projeção da edificação", `${f2(proj)} m²`, "Casa, garagem e WC do gourmet; pergolado não computado"],
-    ["Taxa de ocupação", `${f1(proj / lote * 100)}%`, "Projeção ÷ lote"],
-    ["Área construída total", `${f2(constr)} m²`, "105,61 m² fechados + 25,00 m² de garagem"],
-    ["Coeficiente de aproveitamento", f2(constr / lote), `${f2(105.61 / lote)} se a garagem não for computável`],
-    ["Área permeável", `${f2(perm)} m² · ${f1(perm / lote * 100)}%`, "Jardim lateral, fundos e frontal (sem os pisantes)"]
+    ["Área do terreno", `${f2(lote)} m²`, "Matrícula 209.741 · frente 8,17 m, fundos 8,08 m"],
+    ["Área construída fechada", "105,61 m²", "Pavimento único"],
+    ["Garagem sob a laje", "19,00 m²", "2 vagas, pé-direito de 3,60 m"],
+    ["Taxa de ocupação", `${f1(105.61 / lote * 100)}% · ${f1(124.61 / lote * 100)}%`, "Só a casa · com a laje da garagem, se computar"],
+    ["Coeficiente de aproveitamento", f2(105.61 / lote), "Área construída fechada ÷ terreno"],
+    ["Área permeável", `${f2(perm)} m² · ${f1(perm / lote * 100)}%`, "Faixa lateral, jardim frontal e de fundo"]
   ];
   $("tabInd").querySelector("tbody").innerHTML = linhas.map(l => `<tr><td>${l[0]}<div class="sub">${l[2]}</div></td><td class="n">${l[1]}</td></tr>`).join("");
   const rec = [
     ["Frontal (corpo da casa)", "5,00 m", "ok", "Livre"],
-    ["Frontal (laje da garagem)", "0,00 m", "info", "Verificar"],
+    ["Frontal (laje da garagem)", "0,00 m", "info", "Pendência 1"],
     ["Lateral direita", "1,50 m", "ok", "CC art. 1.301"],
     ["Lateral esquerda", "0,00 m", "ok", "Parede cega"],
     ["Fundos (casa)", "4,60 m", "ok", "Livre"],
@@ -1114,10 +1117,10 @@ const MEM = [
   ["Vedações","Bloco cerâmico 14 × 19 × 39 cm (NBR 15270-1:2017), chapisco, emboço e reboco; muros de divisa em bloco de concreto com 2,00 m."],
   ["Cobertura","Laje impermeabilizada com manta asfáltica 4 mm e proteção mecânica (NBR 9575:2010), caimento ≥ 1%, platibanda com rufo e calhas dimensionadas pela NBR 10844."],
   ["Pisos","Porcelanato retificado 60 × 60 cm nas áreas sociais; vinílico madeirado nos dormitórios e escritório; pedra antiderrapante no gourmet; concreto desempenado na garagem."],
-  ["Áreas molhadas","Revestimento cerâmico até o forro nos boxes, impermeabilização de box, lavanderia e WC do gourmet; ralos linares nos boxes."],
+  ["Áreas molhadas","Revestimento cerâmico até o forro nos boxes, impermeabilização de box, lavanderia e banheiro de apoio; ralos lineares nos boxes."],
   ["Bancadas","Quartzo branco ou granito claro, cubas de embutir em inox (cozinha) e louça (banhos)."],
   ["Esquadrias","Alumínio linha 30 cor grafite; vidro laminado 8 mm nas portas-janela e temperado na porta de correr do gourmet (NBR 7199:2016)."],
-  ["Portas","Internas em madeira semissólida lacada branca 80 × 210 cm (NBR 15930); entrada pivotante em madeira maciça com ripado contínuo na fachada."],
+  ["Portas","Internas em madeira semissólida lacada branca 80 × 210 cm (NBR 15930); entrada pivotante em madeira maciça; portão da garagem em alumínio ripado."],
   ["Forros","Gesso liso com tabica; pé-direito de 2,80 m no bloco íntimo e social e 3,60 m no hall e escritório."],
   ["Instalações","Elétrica pela NBR 5410:2004, água fria pela NBR 5626:2020, esgoto pela NBR 8160:1999; prever exaustão no banho da suíte 2 e ponto para aquecimento solar ou a gás."],
   ["Piscina","Sistema conforme NBR 10339:2018, com dispositivos de sucção antiaprisionamento e casa de máquinas a localizar."],
