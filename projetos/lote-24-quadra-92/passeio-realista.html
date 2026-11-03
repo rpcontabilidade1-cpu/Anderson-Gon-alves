@@ -138,7 +138,7 @@ footer{padding-block:2px 12px;font-size:11px;color:var(--tinta2);max-width:120ch
   <header class="carimbo">
     <div>
       <div class="olho">Estudo preliminar · EP-02 · Revisão R01</div>
-      <h1>Residência térrea — Lote 24, Quadra 92</h1>
+      <h1>Residência térrea — Lote 24, Quadra 92 · Ribeirão Preto/SP</h1>
     </div>
     <dl class="campos">
       <div><dt>Lote (inferido)</dt><dd>8,17 × 25,00 m</dd></div>
@@ -211,8 +211,8 @@ footer{padding-block:2px 12px;font-size:11px;color:var(--tinta2);max-width:120ch
             <input id="hora" type="range" min="5" max="19.5" step="0.25" value="14"></div>
           <div class="campo"><div class="linha"><label class="rotulo" for="azi">Frente do lote voltada para</label><b id="lAzi">—</b></div>
             <input id="azi" type="range" min="0" max="355" step="5" value="0"></div>
-          <div class="campo"><div class="linha"><label class="rotulo" for="lat">Latitude do terreno (°)</label><b id="lLat">—</b></div>
-            <input id="lat" type="number" min="-34" max="6" step="0.01" value="-23.55"></div>
+          <div class="campo"><div class="linha"><label class="rotulo" for="lat">Latitude · Ribeirão Preto/SP (°)</label><b id="lLat">—</b></div>
+            <input id="lat" type="number" min="-34" max="6" step="0.01" value="-21.18"></div>
           <button class="botao" id="bDia">Animar o dia inteiro</button>
           <dl class="leitura">
             <div><dt class="rotulo">Altura solar</dt><dd id="oAlt">—</dd></div>
@@ -222,7 +222,7 @@ footer{padding-block:2px 12px;font-size:11px;color:var(--tinta2);max-width:120ch
             <div><dt class="rotulo">Fachada das janelas</dt><dd class="txt" id="oFach">—</dd></div>
             <div><dt class="rotulo">Sol nessa fachada agora</dt><dd class="txt" id="oSolF">—</dd></div>
           </dl>
-          <p class="nota">Azimute do lote e latitude ainda não confirmados. Informe a cidade e a orientação da testada (planta de situação ou matrícula) para fechar o estudo.</p>
+          <p class="nota">Latitude de Ribeirão Preto/SP (21°10′ S). A orientação da testada ainda não foi confirmada; ajuste o controle acima conforme a planta de situação ou a matrícula.</p>
         </section>
 
         <section class="aba" id="aba-rev" hidden>
@@ -506,8 +506,8 @@ plano(-2000, 2500, 4832, 215, 2, M.calcada);
 peca(-2000, 2700, 4832, 15, -12, 17, M.concLiso, null, false);
 plano(-2000, 2715, 4832, 900, -12, M.asfalto);
 for (let x = -1900; x < 2800; x += 600) peca(x, 3150, 300, 12, -11.5, .5, M.bordaP, null, false); // faixa central
-peca(-1000, 300, 900, 1600, 0, 640, M.vizinho); colide([-1000, 300, 900, 1600]); colide([960, 250, 800, 1750]); peca(-1000, 300, 900, 1600, 640, 30, M.concLiso);
-peca(960, 250, 800, 1750, 0, 610, M.vizinho); peca(960, 250, 800, 1750, 610, 30, M.concLiso);
+peca(-1000, 300, 900, 1600, 0, 330, M.vizinho); colide([-1000, 300, 900, 1600]); colide([960, 250, 800, 1750]); peca(-1000, 300, 900, 1600, 330, 25, M.concLiso);
+peca(960, 250, 800, 1750, 0, 340, M.vizinho); peca(960, 250, 800, 1750, 340, 25, M.concLiso);
 // muros de divisa (2,00 m)
 peca(817, -15, 15, 2515, 0, 200, M.concLiso); colide([817, -15, 15, 2515]);
 peca(-22, -15, 839, 15, 0, 200, M.concLiso); colide([-22, -15, 839, 15]);
@@ -676,7 +676,7 @@ D.paredes.forEach(w => {
   if (h){ peca(w[0], w[1] - 1, 4, t + 2, 0, 210, mat, G.portas); peca(w[0] + L - 4, w[1] - 1, 4, t + 2, 0, 210, mat, G.portas); peca(w[0], w[1] - 1, L, t + 2, 206, 4, mat, G.portas); }
   else  { peca(w[0] - 1, w[1], t + 2, 4, 0, 210, mat, G.portas); peca(w[0] - 1, w[1] + L - 4, t + 2, 4, 0, 210, mat, G.portas); peca(w[0] - 1, w[1], t + 2, L, 206, 4, mat, G.portas); }
   const lw = L - 8, e = 3.5, cx = h ? w[0] + L/2 : w[0] + t/2, cz = h ? w[1] + t/2 : w[1] + L/2;
-  const lado = sgn => { const a = h ? ambEm(cx, cz + sgn*(t/2 + 40)) : ambEm(cx + sgn*(t/2 + 40), cz); return a ? areaAmb(a) : 1e9; };
+  const lado = sgn => { const a = h ? ambEm(cx, cz + sgn*(t/2 + 40)) : ambEm(cx + sgn*(t/2 + 40), cz); return !a ? 1e9 : a.s === "circ" ? 1e8 : areaAmb(a); };
   const lados = [1, -1].sort((a, b) => lado(a) - lado(b));
   const cand = [];
   lados.forEach(sg => ["A","B"].forEach(hg => {
@@ -764,7 +764,7 @@ function dataDe(n){ const d = new Date(2026, 0, n); return d.toLocaleDateString(
 
 function atualizaSol(){
   const n = +iDia.value, hs = +iHora.value, A = +iAzi.value;
-  let lat = parseFloat(String(iLat.value).replace(",", ".")); if (!isFinite(lat)) lat = -23.55;
+  let lat = parseFloat(String(iLat.value).replace(",", ".")); if (!isFinite(lat)) lat = -21.18;
   const p = posSolar(n, hs, lat);
   const rel = (p.az - A) * RAD, ca = Math.cos(p.alt * RAD);
   const dir = new THREE.Vector3(-Math.sin(rel)*ca, Math.sin(p.alt*RAD), Math.cos(rel)*ca);
@@ -809,7 +809,7 @@ document.querySelectorAll("#datas .chip").forEach(b => b.addEventListener("click
 let animDia = false;
 $("bDia").addEventListener("click", () => {
   animDia = !animDia; $("bDia").textContent = animDia ? "Parar animação" : "Animar o dia inteiro";
-  if (animDia){ const p = posSolar(+iDia.value, 12, +iLat.value || -23.55); iHora.value = Math.max(5, p.nasc); }
+  if (animDia){ const p = posSolar(+iDia.value, 12, +iLat.value || -21.18); iHora.value = Math.max(5, p.nasc); }
 });
 
 /* =====================================================================
@@ -1133,7 +1133,7 @@ let t0 = performance.now();
 function laco(t){
   requestAnimationFrame(laco);
   const dt = Math.min((t - t0) / 1000, .05); t0 = t;
-  if (animDia){ let h = +iHora.value + dt * 1.1; const p = posSolar(+iDia.value, 12, +iLat.value || -23.55);
+  if (animDia){ let h = +iHora.value + dt * 1.1; const p = posSolar(+iDia.value, 12, +iLat.value || -21.18);
     if (h > Math.min(19.5, p.por + .25)){ h = Math.min(19.5, p.por + .25); animDia = false; $("bDia").textContent = "Animar o dia inteiro"; }
     iHora.value = h; atualizaSol(); }
   if (modo === "passeio"){
